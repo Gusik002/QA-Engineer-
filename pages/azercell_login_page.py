@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -56,6 +57,7 @@ class AzercellLoginPage:
             self.LOGIN_BUTTON_LOCATORS
         )
         login_button.click()
+        time.sleep(1)
         self._switch_to_new_window_if_needed(initial_handles)
 
     def _switch_to_new_window_if_needed(self, initial_handles: set):
@@ -77,7 +79,9 @@ class AzercellLoginPage:
             self.PHONE_INPUT_LOCATORS
         )
         phone_input.clear()
+        time.sleep(0.3)
         phone_input.send_keys(phone_formatted)
+        time.sleep(0.5)
         return phone_formatted
 
     def submit_phone_number(self):
@@ -85,6 +89,7 @@ class AzercellLoginPage:
             self.PHONE_INPUT_LOCATORS
         )
         phone_input.send_keys(Keys.ENTER)
+        time.sleep(2)
 
     def click_password_change_link(self) -> bool:
         try:
@@ -92,6 +97,15 @@ class AzercellLoginPage:
                 self.PASSWORD_CHANGE_LOCATORS, timeout=10
             )
             change_link.click()
+            time.sleep(2)
+
+            try:
+                WebDriverWait(self.driver, 10).until(
+                    lambda d: "password-change" in d.current_url
+                )
+            except TimeoutException:
+                pass
+
             return True
         except NoSuchElementException:
             return False
@@ -110,3 +124,6 @@ class AzercellLoginPage:
             return phone_input.get_attribute("value")
         except NoSuchElementException:
             return None
+
+    def normalize_phone_number(self, phone: str) -> str:
+        return phone.replace(" ", "").replace("-", "")

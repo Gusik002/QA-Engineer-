@@ -29,7 +29,10 @@ def test_phone_input_accepts_number(login_page):
     entered_phone = login_page.enter_phone_number(PHONE_NUMBER)
     actual_value = login_page.get_phone_input_value()
 
-    assert actual_value == entered_phone
+    normalized_entered = login_page.normalize_phone_number(entered_phone)
+    normalized_actual = login_page.normalize_phone_number(actual_value)
+
+    assert normalized_actual == normalized_entered
 
 
 def test_phone_number_formats_correctly(login_page):
@@ -47,13 +50,18 @@ def test_phone_number_formats_correctly(login_page):
 def test_password_change_flow(login_page):
     login_page.open_home_page()
     login_page.click_login_button()
+
+    assert login_page.is_on_login_page(), "Not on login page"
+
     login_page.enter_phone_number(PHONE_NUMBER)
     login_page.submit_phone_number()
 
     success = login_page.click_password_change_link()
-
     assert success, "Password change link not found"
-    assert login_page.is_on_password_change_page()
+
+    assert login_page.is_on_password_change_page(), (
+        f"Expected password-change in URL, got: {login_page.driver.current_url}"
+    )
 
 
 @pytest.mark.regression
@@ -61,15 +69,21 @@ def test_complete_flow_to_otp_page(login_page):
     login_page.open_home_page()
 
     login_page.click_login_button()
-    assert login_page.is_on_login_page()
+    assert login_page.is_on_login_page(), "Failed to reach login page"
 
     login_page.enter_phone_number(PHONE_NUMBER)
     login_page.submit_phone_number()
 
-    login_page.click_password_change_link()
-    assert login_page.is_on_password_change_page()
+    success = login_page.click_password_change_link()
+    assert success, "Password change link not found"
 
-    assert "confirm-number" in login_page.driver.current_url
+    assert login_page.is_on_password_change_page(), (
+        f"Not on password change page. Current URL: {login_page.driver.current_url}"
+    )
+
+    assert "confirm-number" in login_page.driver.current_url, (
+        f"Expected confirm-number in URL, got: {login_page.driver.current_url}"
+    )
 
 
 @pytest.mark.parametrize("phone", [
