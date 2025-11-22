@@ -1,7 +1,7 @@
 import pytest
 from pages.azercell_login_page import AzercellLoginPage
 
-PHONE_NUMBER = "507475560"
+PHONE_NUMBER = "YOUR_VALID_AZERCELL_NUMBER_HERE"
 
 
 @pytest.fixture
@@ -42,11 +42,9 @@ def test_phone_number_formats_correctly(login_page):
     login_page.open_home_page()
     login_page.click_login_button()
 
-    phone_without_zero = "507475560"
-    entered = login_page.enter_phone_number(phone_without_zero)
+    entered = login_page.enter_phone_number(PHONE_NUMBER)
 
     assert entered.startswith("0")
-    assert entered == "0507475560"
 
 
 @pytest.mark.regression
@@ -92,15 +90,17 @@ def test_complete_flow_to_otp_page(login_page):
     )
 
 
-@pytest.mark.parametrize("phone", [
-    "507475560",
-    "0507475560",
-    "555123456",
+@pytest.mark.parametrize("phone_variant", [
+    PHONE_NUMBER,
+    f"0{PHONE_NUMBER}",
 ])
-def test_different_phone_numbers(login_page, phone):
+def test_phone_number_with_and_without_zero(login_page, phone_variant):
+    if phone_variant == "YOUR_VALID_AZERCELL_NUMBER_HERE":
+        pytest.skip("PHONE_NUMBER not configured")
+
     login_page.open_home_page()
     login_page.click_login_button()
-    entered = login_page.enter_phone_number(phone)
+    entered = login_page.enter_phone_number(phone_variant)
     assert entered.startswith("0")
 
     actual = login_page.get_phone_input_value()

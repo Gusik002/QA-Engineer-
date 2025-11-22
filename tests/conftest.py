@@ -12,11 +12,25 @@ from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
 
-REPORTS_DIR = pathlib.Path(os.getenv("REPORTS_DIR", "../reports"))
+REPORTS_DIR = pathlib.Path(os.getenv("REPORTS_DIR", "reports"))
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 SCREENSHOTS_DIR = REPORTS_DIR / "screenshots"
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--phone",
+        action="store",
+        default=os.getenv("PHONE_NUMBER", "507475560"),
+        help="Phone number for Azercell login tests",
+    )
+
+
+@pytest.fixture(scope="session")
+def phone_number(request):
+    return request.config.getoption("--phone")
 
 
 @pytest.fixture(scope="session")
@@ -108,13 +122,14 @@ def pytest_configure(config):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_test_environment():
+def setup_test_environment(phone_number):
     print("\n" + "=" * 60)
     print("Test Environment Setup")
     print("=" * 60)
     print(f"Reports Directory: {REPORTS_DIR}")
     print(f"Screenshots Directory: {SCREENSHOTS_DIR}")
     print(f"Headless Mode: {os.getenv('HEADLESS', '1') == '1'}")
+    print(f"Phone Number: {phone_number}")
     print("=" * 60 + "\n")
     yield
     print("\n" + "=" * 60)

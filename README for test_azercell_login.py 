@@ -1,0 +1,59 @@
+## Azercell Login Automation
+
+Selenium-based test automation for Azercell login flow using Python and pytest.
+
+### Prerequisites
+
+```bash
+pip install pytest selenium webdriver-manager
+```
+
+### Quick Start
+
+1. **Configure your phone number**
+
+   Open `tests/test_azercell_login.py` and replace the placeholder at line 5:
+
+   ```python
+   PHONE_NUMBER = "YOUR_VALID_AZERCELL_NUMBER_HERE"
+   ```
+
+   Change it to your Azercell number (with or without leading 0):
+
+   ```python
+   PHONE_NUMBER = "507475560"
+   ```
+
+2. **Run the tests**
+
+   ```bash
+   pytest tests/test_azercell_login.py -v
+   ```
+
+### Test Execution Options
+
+```bash
+pytest tests/test_azercell_login.py -v
+
+pytest tests/test_azercell_login.py -m smoke
+
+HEADLESS=0 pytest tests/test_azercell_login.py -v
+
+pytest tests/test_azercell_login.py::test_complete_flow_to_otp_page -v
+```
+
+### What Gets Tested
+
+- ✅ Homepage navigation
+- ✅ Login page access
+- ✅ Phone number input and formatting
+- ✅ Password change flow
+- ✅ OTP page navigation
+
+### Test Reports
+
+Failed tests automatically generate:
+- Screenshots: `reports/screenshots/*.png`
+- Page source: `reports/screenshots/*.html`
+
+### Project Structure
