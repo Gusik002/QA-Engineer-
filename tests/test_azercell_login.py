@@ -1,7 +1,7 @@
 import pytest
 from pages.azercell_login_page import AzercellLoginPage
 
-PHONE_NUMBER = "YOUR_VALID_AZERCELL_NUMBER_HERE"
+PHONE_NUMBER = "YOUR_VALID_AZERCELL_NUMBER_HERE" #Please use everything after +994, without spaces
 
 
 @pytest.fixture
