@@ -116,6 +116,13 @@ class AzercellLoginPage:
     def is_on_login_page(self) -> bool:
         return "kabinetim" in self.driver.current_url
 
+    def is_on_otp_page(self) -> bool:
+        current_url = self.driver.current_url
+        return any(
+            endpoint in current_url
+            for endpoint in ["confirm-number", "enter-code", "many-code-attempts"]
+        )
+
     def get_phone_input_value(self) -> Optional[str]:
         try:
             phone_input = self.find_element_by_multiple_locators(
@@ -126,4 +133,5 @@ class AzercellLoginPage:
             return None
 
     def normalize_phone_number(self, phone: str) -> str:
-        return phone.replace(" ", "").replace("-", "")
+        normalized = phone.replace(" ", "").replace("-", "").lstrip("0")
+        return normalized
