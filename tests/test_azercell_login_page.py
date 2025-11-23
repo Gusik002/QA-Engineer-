@@ -25,6 +25,7 @@ def test_login_button_redirects(login_page):
 
 
 @pytest.mark.smoke
+
 def test_phone_input_accepts_number(login_page, phone_number):
     login_page.open_home_page()
     login_page.click_login_button()
@@ -34,7 +35,8 @@ def test_phone_input_accepts_number(login_page, phone_number):
 
     normalized_entered = login_page.normalize_phone_number(entered_phone)
     normalized_actual = login_page.normalize_phone_number(actual_value)
-
+    if not phone_number or phone_number == "5XXXXXXXXX":
+        pytest.skip("Valid phone number not configured")
     assert normalized_actual == normalized_entered, (
         f"Phone mismatch: entered '{entered_phone}' "
         f"but got '{actual_value}' in field"
@@ -45,7 +47,8 @@ def test_phone_input_accepts_number(login_page, phone_number):
 def test_phone_submit_navigates_forward(login_page, phone_number):
     login_page.open_home_page()
     login_page.click_login_button()
-
+    if not phone_number or phone_number == "5XXXXXXXXX":
+        pytest.skip("Valid phone number not configured")
     initial_url = login_page.driver.current_url
 
     login_page.enter_phone_number(phone_number)
@@ -58,7 +61,8 @@ def test_phone_submit_navigates_forward(login_page, phone_number):
 def test_password_change_flow(login_page, phone_number):
     login_page.open_home_page()
     login_page.click_login_button()
-
+    if not phone_number or phone_number == "5XXXXXXXXX":
+        pytest.skip("Valid phone number not configured")
     assert login_page.is_on_login_page(), "Not on login page"
 
     login_page.enter_phone_number(phone_number)
@@ -78,7 +82,8 @@ def test_password_change_flow(login_page, phone_number):
 @pytest.mark.regression
 def test_complete_flow_to_otp_page(login_page, phone_number):
     login_page.open_home_page()
-
+    if not phone_number or phone_number == "5XXXXXXXXX":
+        pytest.skip("Valid phone number not configured")
     login_page.click_login_button()
     assert login_page.is_on_login_page(), "Failed to reach login page"
 
@@ -112,6 +117,9 @@ def test_phone_normalization(login_page):
 
 @pytest.mark.slow
 def test_multiple_phone_formats_accepted(login_page, phone_number):
+    if not phone_number or phone_number == "5XXXXXXXXX":
+        pytest.skip("Valid phone number not configured")
+
     login_page.open_home_page()
     login_page.click_login_button()
 
