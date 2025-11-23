@@ -1,32 +1,54 @@
-name: CI
+name: QA Portfolio CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *" # Nightly run at 00:00 UTC
 
 jobs:
-  test:
+  lint:
+    name: Lint (Python style checks)
     runs-on: ubuntu-latest
-    env:
-      HEADLESS: "1"
-      REPORTS_DIR: reports
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Install linters
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff black
+
+      - name: Run ruff
+        run: ruff check pages autotests || true
+
+      - name: Run black (check only)
+        run: black --check pages autotests || true
+
+  ui-tests:
+    name: UI tests (pytest + Selenium)
+    runs-on: ubuntu-latest
+    env:
+      HEADLESS: "1"
+      REPORTS_DIR: reports/ui
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          node-version: "18"
+          python-version: "3.11"
 
       - name: Cache pip
         uses: actions/cache@v4
@@ -39,13 +61,13 @@ jobs:
       - name: Ensure Chromium/Chrome
         run: |
           if command -v chromium-browser >/dev/null 2>&1; then
-            echo "CHROME_BIN=$(which chromium-browser)" >> $GITHUB_ENV
+            echo "CHROME_BIN=$(which chromium-browser)" >> "$GITHUB_ENV"
           elif command -v google-chrome >/dev/null 2>&1; then
-            echo "CHROME_BIN=$(which google-chrome)" >> $GITHUB_ENV
+            echo "CHROME_BIN=$(which google-chrome)" >> "$GITHUB_ENV"
           else
             sudo apt-get update
             sudo apt-get install -y chromium-browser
-            echo "CHROME_BIN=/usr/bin/chromium-browser" >> $GITHUB_ENV
+            echo "CHROME_BIN=/usr/bin/chromium-browser" >> "$GITHUB_ENV"
           fi
 
       - name: Install Python dependencies
@@ -56,23 +78,53 @@ jobs:
       - name: Prepare reports directory
         run: mkdir -p "${{ env.REPORTS_DIR }}"
 
-      - name: Run pytest (Selenium tests)
+      - name: Run pytest (Selenium UI tests)
         env:
-          CHROME_BIN: ${{ env.CHROME_BIN }}
           PYTHONPATH: ${{ github.workspace }}
           PHONE_NUMBER: ${{ secrets.AZERCELL_PHONE_NUMBER }}
-        run: pytest -q --junitxml="${{ env.REPORTS_DIR }}/junit.xml"
+        run: |
+          pytest -q \
+            --junitxml="${{ env.REPORTS_DIR }}/ui-junit.xml"
+
+      - name: Upload UI test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-reports
+          path: ${{ env.REPORTS_DIR }}
+
+  api-tests:
+    name: API tests (Postman + Newman)
+    runs-on: ubuntu-latest
+    env:
+      REPORTS_DIR: reports/api
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
 
       - name: Install Newman + reporters
-        run: npm install -g newman newman-reporter-html newman-reporter-junitfull
+        run: |
+          npm install -g \
+            newman \
+            newman-reporter-html \
+            newman-reporter-junitfull
+
+      - name: Prepare reports directory
+        run: mkdir -p "${{ env.REPORTS_DIR }}"
 
       - name: Setup Postman environment file
         run: |
           ENV_FILE="postman/environments/restful-booker.postman_environment.json"
-          
+
           if [ ! -f "$ENV_FILE" ]; then
-            echo "Environment file not found. Creating it..."
-            mkdir -p postman/environments
+            echo "Environment file not found. Creating default CI environment..."
+            mkdir -p "$(dirname "$ENV_FILE")"
             cat > "$ENV_FILE" << 'ENVEOF'
           {
             "id": "ci-environment",
@@ -113,24 +165,22 @@ jobs:
           }
           ENVEOF
           fi
-          
-          echo "Environment file content:"
+
+          echo "Using Postman environment file:"
           cat "$ENV_FILE"
 
       - name: Run Postman collection (Newman)
         run: |
           COLLECTION="postman/collections/restful-booker.postman_collection.json"
           ENV_FILE="postman/environments/restful-booker.postman_environment.json"
-          
+
           if [ ! -f "$COLLECTION" ]; then
-            echo "Collection not found: $COLLECTION - skipping Newman tests"
+            echo "Collection not found: $COLLECTION"
+            echo "Skipping Newman tests."
             exit 0
           fi
-          
-          echo "Running Newman with:"
-          echo "  Collection: $COLLECTION"
-          echo "  Environment: $ENV_FILE"
-          
+
+          echo "Running Newman..."
           newman run "$COLLECTION" \
             -e "$ENV_FILE" \
             --reporters cli,junit,html \
@@ -138,9 +188,9 @@ jobs:
             --reporter-html-export "${{ env.REPORTS_DIR }}/postman-results.html" \
             --timeout-request 60000
 
-      - name: Upload reports
+      - name: Upload API test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
+          name: api-test-reports
           path: ${{ env.REPORTS_DIR }}

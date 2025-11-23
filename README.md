@@ -1,106 +1,237 @@
-# QA Portfolio — Huseyn Gasimov
+# QA Automation Portfolio – Huseyn Gasimov
 
-I am a QA Engineer with a little over two years of hands-on experience across
-BI dashboards, web applications, and mobile apps (iOS/Android). I focus on
-data correctness, fast developer feedback, and clear, reproducible defects
-rather than just executing test cases.
+This repository showcases how I approach quality engineering across web UI,
+APIs, and CI/CD. It uses public systems (the Azercell login page and the
+Restful Booker API) to demonstrate my testing style without exposing any
+NDA‑protected work.
 
-## What I work on
+The focus is on small, reliable suites wired into CI, clear reporting, and
+practical tooling rather than huge “test everything” packs.
 
-- API and backend testing with Postman/Newman and SQL-based data checks
-- Mobile testing and debugging with Android Studio, Xcode, BrowserStack,
-  Charles, Proxyman
-- Release gating and regression planning for BI, web and mobile releases
-- Lightweight automation (Appium, pytest/Playwright) wired into CI for
-  critical-path stability
+---
 
-## Recent project highlights
+## What this repository demonstrates
 
-### Employment platform (event-driven microservices, mobile apps) — QA Engineer
+- **Cross‑layer testing:** web UI (Selenium/pytest) and API checks
+  (Postman/Newman), plus basic reporting.
+- **CI‑first mindset:** tests run on every push and pull request in
+  GitHub Actions; results are published as JUnit/HTML artifacts.
+- **Risk‑based design:** focused smoke coverage for critical user paths,
+  including positive and negative scenarios.
+- **Maintainable automation:** Page Object Model, shared fixtures, and
+  environment‑aware configuration.
 
-- Defined an iOS/Android coverage matrix (5 physical devices + BrowserStack)
-  targeting main user segments and reduced “untested device” escapes.
-- Ran a focused 40-case smoke suite for each release candidate via TestFlight
-  and Google Play Internal Testing, improving release confidence and
-  shortening go/no-go decisions.
-- Reproduced and diagnosed crashes using Android Studio emulator, Xcode
-  simulator, device logs and network traces; provided clear repro steps,
-  logs and recordings to developers.
-- Verified offline/sync and degraded-network behaviour with Charles Proxy
-  and Proxyman and uncovered data-consistency gaps between app and backend.
-- Built a lightweight Appium smoke suite (~20 critical paths) on BrowserStack
-  and integrated it into CI (per-PR + nightly), reducing escaped mobile
-  regressions by ~20% and surfacing failures within ~15 minutes.
-- Added a focused Postman pack for mobile-critical APIs (auth, profile,
-  sync) with environment-aware scripts and CI reporting; blocked 10+ API
-  defects before RC builds and cut triage time by ~25%.
+---
 
-### BI & web analytics platform — QA Engineer
+## Tech stack
 
-- Built and maintained 120+ Postman API tests with reusable environments
-  and scripts; blocked 30+ API defects before staging.
-- Integrated Newman into CI for nightly multi-environment runs with
-  JUnit/HTML reporting, shortening feedback loops.
-- Led regression for several BI/web modules; trimmed the suite by 26%
-  while preserving ~95% functional coverage and cutting cycle time by ~35%.
-- Authored 300+ TestRail cases and introduced tag-based filters
-  (smoke/regression), improving test selection speed by ~40%.
-- Wrote SQL reconciliation checks to validate dashboards against source
-  tables and surfaced data integrity issues early.
-- Standardised Jira defect templates and attachments (device/profile,
-  steps, logs, screenshots/video), improving defect quality and reducing
-  reopen/triage time by ~25%.
-- Collaborated with product and engineering on acceptance criteria and
-  release gating, increasing first-pass acceptance in sprints.
+- **Language & test runner**
+  - Python 3.11, `pytest`
+- **Web UI automation**
+  - Selenium WebDriver
+  - Page Object Model (POM)
+- **API testing**
+  - Postman collections
+  - Newman CLI + HTML/JUnit reporters
+- **CI/CD**
+  - GitHub Actions (`.github/workflows/ci.yml`)
+- **Other tooling**
+  - Chrome/Chromium (headless in CI)
+  - JUnit XML + HTML reports (uploaded as build artifacts)
 
-## Skills and tools
+Real production work (mobile, BI, broader API suites) is under NDA, but
+the structure here mirrors how I work on those projects.
 
-- **APIs & data:** Postman, Newman (CI), Swagger/OpenAPI, REST, SQL,
-  BI dashboard reconciliation
-- **Mobile & debugging:** Android Studio, Xcode, Charles Proxy, Proxyman,
-  BrowserStack, TestFlight, Google Play Internal Testing
-- **Test management:** TestRail (tagged suites, coverage), Jira
-  (workflows, templates), Chrome DevTools
-- **Automation & CI:** Appium (smoke), Python (scripting), learning Java,
-  Playwright/pytest basics, CI test reporting (JUnit/HTML)
-- **Methods:** Agile/Scrum/Kanban; SDLC/STLC
-- **Languages:** English (C2, IELTS 8), Japanese (JLPT N3), Azerbaijani
-  (native), Russian (native)
+---
 
-## How I like to test
+## Repository structure
 
-- Start from user journeys and data flows, then design lean smoke and
-  regression suites that reflect real risk.
-- Automate the critical paths that must stay green on every build; keep
-  those checks fast, stable and visible in CI.
-- Keep defects small, clear and reproducible, with logs, screenshots,
-  videos and environment details so engineers can fix issues quickly.
-- Use CI to catch regressions early, protect release quality, and make
-  go/no-go decisions based on data.
+```text
+.github/
+  workflows/
+    ci.yml              # GitHub Actions pipeline
 
-## About this portfolio
+autotests/              # pytest UI tests (Selenium)
+  test_azercell_login_page.py
+  test_smoke.py         # Example smoke/regression grouping
 
-This repository demonstrates how I approach QA in practice and will
-contain:
+pages/                  # Page Object Model classes
+  azercell_login_page.py
+  login_page.py
+  __init__.py
 
-- API test collections (Postman/Newman) with environment-aware scripts
-- Example SQL checks for BI/dashboard validation
-- Lightweight Python/pytest and Appium examples for critical-path tests
-- A simple CI workflow that runs checks on every push and pull request
+postman/
+  collections/          # RESTful Booker Postman collection
+  environments/         # Local/CI environments
+  newman/               # Example Newman configs (if needed)
+  reports/              # Local Newman report outputs (git‑ignored)
 
-The emphasis is on small, focused suites wired into CI, clear reporting,
-and practical tooling rather than long lists.
+reports/
+  screenshots/          # Example screenshots from UI runs
+  README.md             # Notes about local reports (optional)
 
-## Education
+conftest.py             # Shared pytest fixtures (driver, waits, etc.)
+pytest.ini              # Pytest configuration and markers
+requirements.txt        # Python dependencies
+README.md               # This file
+```
 
-- Master’s Degree in Renewable Energy (MSc) — Warwick University,
-  United Kingdom (2023–2025)  
-- Bachelor’s Degree in Oil and Gas Engineering — Azerbaijan State Oil and
-  Industry University (2019–2023)
+Folder names may evolve, but the idea is to keep UI tests, page objects,
+and API collections clearly separated.
+
+---
+
+## Running tests locally
+
+### 1. Prerequisites
+
+- Python **3.11+**
+- Node.js **18+** with `npm`
+- Google Chrome or Chromium installed locally
+
+Clone the repository and create a virtual environment:
+
+```bash
+git clone https://github.com/<your-username>/<this-repo>.git
+cd <this-repo>
+
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+```
+
+Install Python dependencies:
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+Install Newman globally (for API tests):
+
+```bash
+npm install -g newman newman-reporter-html newman-reporter-junitfull
+```
+
+---
+
+### 2. Run UI tests (Selenium + pytest)
+
+If your tests require a phone number (for OTP flows), export it as an
+environment variable:
+
+```bash
+export PHONE_NUMBER="YOUR_TEST_PHONE_NUMBER"
+```
+
+Then run the UI suite:
+
+```bash
+pytest autotests -q
+```
+
+To generate a local JUnit report:
+
+```bash
+pytest autotests -q --junitxml=reports/ui-junit.xml
+```
+
+By default, tests will run using the browser defined in your fixtures. In
+CI a headless Chromium/Chrome is used.
+
+---
+
+### 3. Run API tests (Postman + Newman)
+
+The main collection is `postman/collections/restful-booker.postman_collection.json`.
+
+If the environment file is missing, CI will generate one automatically,
+but locally you can use or adjust:
+
+```bash
+postman/environments/restful-booker.postman_environment.json
+```
+
+Run the collection via Newman:
+
+```bash
+newman run postman/collections/restful-booker.postman_collection.json \
+  -e postman/environments/restful-booker.postman_environment.json \
+  --reporters cli,junit,html \
+  --reporter-junit-export reports/postman-junit.xml \
+  --reporter-html-export reports/postman-results.html
+```
+
+This produces both machine‑readable (JUnit XML) and human‑readable
+(HTML) reports.
+
+---
+
+## Continuous Integration (GitHub Actions)
+
+The workflow file lives in `.github/workflows/ci.yml`.
+
+It currently runs on:
+
+- Every push to `main`
+- Every pull request targeting `main`
+- Manual runs via the **Run workflow** button
+- A scheduled nightly run (see `cron` in the workflow)
+
+### CI jobs
+
+1. **`lint`**
+   - Installs `ruff` and `black`.
+   - Runs static checks over the Python test code (`pages/`, `autotests/`).
+
+2. **`ui-tests`**
+   - Depends on `lint`.
+   - Sets up Python and project dependencies.
+   - Installs Chromium/Chrome in headless mode.
+   - Executes the Selenium UI tests with `pytest`.
+   - Publishes JUnit XML reports as a `ui-test-reports` artifact.
+
+3. **`api-tests`**
+   - Depends on `lint`.
+   - Sets up Node.js and installs Newman + reporters.
+   - Ensures a Postman environment file exists (creates a default CI one
+     if needed).
+   - Runs the Restful Booker collection with Newman.
+   - Publishes JUnit XML and HTML reports as an `api-test-reports`
+     artifact.
+
+This mirrors how I typically wire smoke and API suites into CI for early,
+visible feedback on each change.
+
+---
+
+## How this reflects my testing approach
+
+- Start from **user journeys** and key backend flows, then design lean
+  smoke and regression packs.
+- Automate **critical paths only**, keeping them stable and fast enough
+  to run on every build.
+- Keep **defects reproducible** with logs, screenshots and environment
+  details so developers can act quickly.
+- Use **CI as the single source of truth** for quality gates (smoke on
+  every PR, fuller coverage on nightly runs).
+
+---
+
+## Real‑world context (NDA)
+
+My production experience includes:
+
+- Mobile (iOS/Android) testing and automation with Appium on BrowserStack
+- BI and web analytics platforms with SQL‑based data validation
+- Release gating, regression planning, and TestRail/Jira workflows
+
+Those projects are under NDA, so this repository uses public targets, but
+follows the same structure and practices I apply at work.
+
+---
 
 ## Contact
 
-- Email: guseingasimov002@gmail.com  
-- LinkedIn: https://www.linkedin.com/in/huseyn-gasimov  
-- Phone: +994 55 207 08 20  
-- Location: Baku, Azerbaijan
+- **Email:** guseingasimov002@gmail.com  
+- **LinkedIn:** https://www.linkedin.com/in/huseyn-gasimov  
+- **Location:** Baku, Azerbaijan
