@@ -28,13 +28,11 @@ class AzercellLoginPage:
         el = self.wait.until(EC.visibility_of_element_located(self.PHONE_INPUT))
         el.clear()
         el.send_keys(phone)
-        # prefer clicking a submit button if present; ENTER is often ok
+
         el.send_keys(Keys.ENTER)
-        # wait for next page or an URL change that indicates submission
         try:
             self.wait.until(EC.url_contains("password-change"))
         except TimeoutException:
-            # not fatal here — caller can handle or add a different wait
             pass
 
     def click_password_change(self):

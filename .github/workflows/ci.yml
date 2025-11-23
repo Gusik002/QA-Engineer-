@@ -60,7 +60,7 @@ jobs:
       - name: Prepare reports directory
         run: mkdir -p ${{ env.REPORTS_DIR }}
 
-      - name: Run pytest (Selenium smoke & tests)
+      - name: Run pytest (Selenium smoke & autotests)
         env:
           CHROME_BIN: ${{ env.CHROME_BIN }}
           PYTHONPATH: ${{ github.workspace }}

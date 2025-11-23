@@ -12,7 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
 
-REPORTS_DIR = pathlib.Path(os.getenv("REPORTS_DIR", "reports"))
+REPORTS_DIR = pathlib.Path(os.getenv("REPORTS_DIR", "../reports"))
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 SCREENSHOTS_DIR = REPORTS_DIR / "screenshots"
