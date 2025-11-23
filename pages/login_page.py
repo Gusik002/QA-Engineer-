@@ -21,7 +21,6 @@ class AzercellLoginPage:
 
     def go_to_login(self):
         self.wait.until(EC.element_to_be_clickable(self.LOGIN_LINK)).click()
-        # wait until the phone input appears on the login page
         self.wait.until(EC.visibility_of_element_located(self.PHONE_INPUT))
 
     def submit_phone(self, phone):
