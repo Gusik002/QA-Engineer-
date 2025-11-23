@@ -55,6 +55,7 @@ jobs:
       - name: Run pytest (Selenium smoke & tests)
         env:
           CHROME_BIN: ${{ env.CHROME_BIN }}
+          PYTHONPATH: ${{ github.workspace }}
         run: pytest -q --junitxml=${{ env.REPORTS_DIR }}/junit.xml
 
       - name: Run Postman collection (Newman)
