@@ -38,7 +38,6 @@ npm install -g newman newman-reporter-html newman-reporter-junitfull
 Run:
 ```bash
 postman/newman/run-restful-booker.sh
-# or use newman directly:
 newman run postman/collections/restful-booker.postman_collection.json \
   -e postman/environments/restful-booker.postman_collection.json \
   --reporters cli,junit,html \
@@ -84,3 +83,4 @@ Contact / Notes
 ---------------
 If anything in the collection is flaky, check the request URL formatting (no spaces, use
 `{{baseUrl}}/booking/{{bookingId}}`) and the Postman Console for raw request/response.
+
