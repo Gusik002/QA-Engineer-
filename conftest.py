@@ -23,7 +23,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--phone",
         action="store",
-        default=os.getenv("PHONE_NUMBER", "507475560"),
+        default=os.getenv("PHONE_NUMBER", "5XXXXXXXXX"),
         help="Phone number for Azercell login tests",
     )
 
