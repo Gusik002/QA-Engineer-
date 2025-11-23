@@ -12,7 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
 
-REPORTS_DIR = pathlib.Path(os.getenv("REPORTS_DIR", "reports"))
+REPORTS_DIR = pathlib.Path(os.getenv("REPORTS_DIR", "../reports"))
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 SCREENSHOTS_DIR = REPORTS_DIR / "screenshots"
@@ -50,6 +50,10 @@ def chrome_options() -> Options:
     opts.add_argument("--disable-infobars")
     opts.add_argument("--start-maximized")
     opts.add_argument("--ignore-certificate-errors")
+    opts.add_argument("--disable-software-rasterizer")
+    opts.add_argument("--disable-background-timer-throttling")
+    opts.add_argument("--disable-backgrounding-occluded-windows")
+    opts.add_argument("--disable-renderer-backgrounding")
 
     opts.add_experimental_option("excludeSwitches", ["enable-logging"])
     opts.add_experimental_option(
@@ -71,8 +75,8 @@ def browser(chrome_options: Options) -> Generator[WebDriver, None, None]:
     try:
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
-        driver.set_page_load_timeout(30)
-        driver.implicitly_wait(10)
+        driver.set_page_load_timeout(60)  # Increased timeout
+        driver.implicitly_wait(15)  # Increased implicit wait
         yield driver
     except Exception as e:
         pytest.fail(f"Failed to initialize browser: {e}")
@@ -86,7 +90,7 @@ def browser(chrome_options: Options) -> Generator[WebDriver, None, None]:
 
 @pytest.fixture()
 def wait(browser: WebDriver) -> WebDriverWait:
-    return WebDriverWait(browser, timeout=15)
+    return WebDriverWait(browser, timeout=30)  # Increased timeout
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

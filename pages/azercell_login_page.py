@@ -36,7 +36,7 @@ class AzercellLoginPage:
         self.wait = wait
 
     def find_element_by_multiple_locators(
-            self, locators: list[tuple], timeout: int = 15
+            self, locators: list[tuple], timeout: int = 20
     ):
         wait = WebDriverWait(self.driver, timeout)
         for by, value in locators:
@@ -50,19 +50,46 @@ class AzercellLoginPage:
 
     def open_home_page(self):
         self.driver.get(self.BASE_URL)
+        time.sleep(2)  # Wait for page load
 
     def click_login_button(self):
         initial_handles = set(self.driver.window_handles)
-        login_button = self.find_element_by_multiple_locators(
-            self.LOGIN_BUTTON_LOCATORS
-        )
-        login_button.click()
-        time.sleep(1)
-        self._switch_to_new_window_if_needed(initial_handles)
+
+        try:
+            # Wait for page to be fully loaded
+            WebDriverWait(self.driver, 10).until(
+                lambda d: d.execute_script("return document.readyState") == "complete"
+            )
+
+            login_button = self.find_element_by_multiple_locators(
+                self.LOGIN_BUTTON_LOCATORS, timeout=20
+            )
+
+            # Scroll element into view
+            self.driver.execute_script(
+                "arguments[0].scrollIntoView({block: 'center'});",
+                login_button
+            )
+            time.sleep(1)
+
+            # Try regular click first, then JavaScript click as fallback
+            try:
+                login_button.click()
+            except Exception:
+                print("Regular click failed, trying JavaScript click...")
+                self.driver.execute_script("arguments[0].click();", login_button)
+
+            time.sleep(2)
+            self._switch_to_new_window_if_needed(initial_handles)
+
+        except Exception as e:
+            print(f"Error clicking login button: {e}")
+            print(f"Current URL: {self.driver.current_url}")
+            raise
 
     def _switch_to_new_window_if_needed(self, initial_handles: set):
         try:
-            WebDriverWait(self.driver, 5).until(
+            WebDriverWait(self.driver, 8).until(
                 lambda d: len(d.window_handles) > len(initial_handles)
                           or "kabinetim" in d.current_url
             )
@@ -70,23 +97,24 @@ class AzercellLoginPage:
             new_handles = current_handles - initial_handles
             if new_handles:
                 self.driver.switch_to.window(new_handles.pop())
+                time.sleep(1)
         except TimeoutException:
             pass
 
     def enter_phone_number(self, phone: str):
         phone_formatted = phone if phone.startswith("0") else f"0{phone}"
         phone_input = self.find_element_by_multiple_locators(
-            self.PHONE_INPUT_LOCATORS
+            self.PHONE_INPUT_LOCATORS, timeout=20
         )
         phone_input.clear()
-        time.sleep(0.3)
+        time.sleep(0.5)
         phone_input.send_keys(phone_formatted)
         time.sleep(0.5)
         return phone_formatted
 
     def submit_phone_number(self):
         phone_input = self.find_element_by_multiple_locators(
-            self.PHONE_INPUT_LOCATORS
+            self.PHONE_INPUT_LOCATORS, timeout=20
         )
         phone_input.send_keys(Keys.ENTER)
         time.sleep(2)
@@ -98,14 +126,22 @@ class AzercellLoginPage:
 
             # Try to find and click the link
             change_link = self.find_element_by_multiple_locators(
-                self.PASSWORD_CHANGE_LOCATORS, timeout=15
+                self.PASSWORD_CHANGE_LOCATORS, timeout=20
             )
 
             # Scroll to element before clicking
-            self.driver.execute_script("arguments[0].scrollIntoView(true);", change_link)
+            self.driver.execute_script(
+                "arguments[0].scrollIntoView({block: 'center'});",
+                change_link
+            )
             time.sleep(0.5)
 
-            change_link.click()
+            # Try click with fallback
+            try:
+                change_link.click()
+            except Exception:
+                self.driver.execute_script("arguments[0].click();", change_link)
+
             time.sleep(2)
 
             try:
