@@ -2,8 +2,7 @@ import os
 import pytest
 from pages.azercell_login_page import AzercellLoginPage
 
-PHONE_NUMBER = os.getenv("PHONE_NUMBER", "507475560") #Please use everything after +994, without spaces
-
+PHONE_NUMBER = os.getenv("PHONE_NUMBER", "507475560")
 
 @pytest.fixture
 def login_page(browser, wait):
