@@ -4,6 +4,7 @@ from pages.azercell_login_page import AzercellLoginPage
 
 PHONE_NUMBER = os.getenv("PHONE_NUMBER", "507475560")
 
+
 @pytest.fixture
 def login_page(browser, wait):
     return AzercellLoginPage(browser, wait)
@@ -57,13 +58,13 @@ def test_password_change_flow(login_page):
     login_page.enter_phone_number(PHONE_NUMBER)
     login_page.submit_phone_number()
 
-    # Check if we're on OTP page or if password change is available
+    # Check if we're already on OTP page
     if login_page.is_on_otp_page():
-        pytest.skip("Reached OTP page - password change flow requires OTP verification")
+        pytest.skip("Already on OTP page - password change requires verification")
 
     success = login_page.click_password_change_link()
     if not success:
-        pytest.skip("Password change link not available at this stage")
+        pytest.skip("Password change link not available")
 
     assert login_page.is_on_password_change_page(), "Not on password change page"
 
@@ -80,13 +81,13 @@ def test_complete_flow_to_otp_page(login_page):
 
     # If already on OTP page, test passes
     if login_page.is_on_otp_page():
-        assert True, "Successfully reached OTP page"
-        return
+        return  # Success - reached OTP page
 
-    # Otherwise try password change flow
     success = login_page.click_password_change_link()
-    if success:
-        assert login_page.is_on_password_change_page(), "Not on password change page"
+    if not success:
+        pytest.skip("Password change link not available")
+
+    assert login_page.is_on_password_change_page(), "Not on password change page"
 
 
 @pytest.mark.parametrize("phone_variant", [
