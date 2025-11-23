@@ -216,7 +216,17 @@ visible feedback on each change.
   every PR, fuller coverage on nightly runs).
 
 ---
+## Docs & test cases
 
+See `docs/test_strategy.md` for the repo testing strategy and CI
+gating. Example test cases for the Azercell login flow are in:
+`docs/test_cases_azercell_login.md`.
+
+How to run (quick)
+- Install deps: `pip install -r requirements.txt`
+- Run UI smoke: `pytest autotests/test_smoke.py -q`
+- Run all Postman: `newman run postman/collections/... -e postman/environments/...`
+CI uploads JUnit/HTML reports to actions artifacts.
 ## Real‑world context (NDA)
 
 My production experience includes:
