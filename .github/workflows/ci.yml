@@ -56,6 +56,7 @@ jobs:
         env:
           CHROME_BIN: ${{ env.CHROME_BIN }}
           PYTHONPATH: ${{ github.workspace }}
+          PHONE_NUMBER: ${{ secrets.AZERCELL_PHONE_NUMBER }}
         run: pytest -q --junitxml=${{ env.REPORTS_DIR }}/junit.xml
 
       - name: Run Postman collection (Newman)
