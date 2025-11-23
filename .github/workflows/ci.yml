@@ -1,112 +1,63 @@
-name: CI
+name: Postman API Tests
 
 on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:
 
 jobs:
-  test:
+  newman:
     runs-on: ubuntu-latest
-    env:
-      HEADLESS: "1"
-      REPORTS_DIR: reports
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Ensure Chromium/Chrome
-        run: |
-          if command -v chromium-browser >/dev/null 2>&1; then
-            echo "CHROME_BIN=$(which chromium-browser)" >> $GITHUB_ENV
-          elif command -v google-chrome >/dev/null 2>&1; then
-            echo "CHROME_BIN=$(which google-chrome)" >> $GITHUB_ENV
-          else
-            sudo apt-get update
-            sudo apt-get install -y chromium-browser
-            echo "CHROME_BIN=/usr/bin/chromium-browser" >> $GITHUB_ENV
-          fi
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-          python -m pip show selenium || python -m pip freeze
-
-      - name: Prepare reports directory
-        run: mkdir -p "${{ env.REPORTS_DIR }}"
-
-      - name: Run pytest (Selenium smoke & autotests)
-        env:
-          CHROME_BIN: ${{ env.CHROME_BIN }}
-          PYTHONPATH: ${{ github.workspace }}
-          PHONE_NUMBER: ${{ secrets.AZERCELL_PHONE_NUMBER }}
-        run: pytest -q --junitxml="${{ env.REPORTS_DIR }}/junit.xml"
+          node-version: "20"
 
       - name: Install Newman + reporters
         run: npm install -g newman newman-reporter-html newman-reporter-junitfull
 
-      - name: Run Postman collection (Newman)
+      - name: Run Postman collection
         run: |
-          set -euo pipefail
-
-          mkdir -p "${{ env.REPORTS_DIR }}"
-
-          # Find the first collection file: prefer postman/collections/*.json then postman/*.json
-          COLLECTION=""
-          for pattern in postman/collections/*.json postman/*.json; do
-            for f in $pattern; do
-              if [ -f "$f" ]; then
-                COLLECTION="$f"
-                break 2
-              fi
-            done
-          done
-
-          if [ -z "$COLLECTION" ]; then
-            echo "No Postman collection found under postman/collections/ or postman/ - skipping Newman"
-            exit 0
-          fi
-
-          echo "Using Postman collection: $COLLECTION"
-
-          # Prefer a committed environment file if present (no secrets inside)
+          mkdir -p postman/reports
+          
+          COLLECTION="postman/collections/restful-booker.postman_collection.json"
           ENV_FILE="postman/environments/restful-booker.postman_environment.json"
-
+          
+          if [ ! -f "$COLLECTION" ]; then
+            echo "Collection not found: $COLLECTION"
+            exit 1
+          fi
+          
           if [ -f "$ENV_FILE" ]; then
-            echo "Environment file found: $ENV_FILE"
-            newman run "$COLLECTION" -e "$ENV_FILE" \
+            echo "Running with environment: $ENV_FILE"
+            newman run "$COLLECTION" \
+              -e "$ENV_FILE" \
               --reporters cli,junit,html \
-              --reporter-junit-export "${{ env.REPORTS_DIR }}/postman-junit.xml" \
-              --reporter-html-export "${{ env.REPORTS_DIR }}/postman-results.html" \
+              --reporter-junit-export postman/reports/newman-results.xml \
+              --reporter-html-export postman/reports/newman-results.html \
               --timeout-request 60000
           else
-            echo "Environment file not found; running collection without environment"
+            echo "Environment file not found: $ENV_FILE"
+            echo "Creating default environment..."
+            cat > "$ENV_FILE" << 'EOF'
+{
+  "id": "default-env",
+  "name": "Default Environment",
+  "values": [
+    {"key": "baseUrl", "value": "https://restful-booker.herokuapp.com", "enabled": true}
+  ],
+  "_postman_variable_scope": "environment"
+}
+EOF
             newman run "$COLLECTION" \
+              -e "$ENV_FILE" \
               --reporters cli,junit,html \
-              --reporter-junit-export "${{ env.REPORTS_DIR }}/postman-junit.xml" \
-              --reporter-html-export "${{ env.REPORTS_DIR }}/postman-results.html" \
+              --reporter-junit-export postman/reports/newman-results.xml \
+              --reporter-html-export postman/reports/newman-results.html \
               --timeout-request 60000
           fi
 
@@ -114,5 +65,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
-          path: ${{ env.REPORTS_DIR }}
+          name: postman-reports
+          path: postman/reports/
