@@ -23,14 +23,34 @@ jobs:
       - name: Run Postman collection
         run: |
           mkdir -p postman/reports
-          newman run postman/collections/restful-booker.postman_collection.json \
-            -e postman/environments/restful-booker.postman_environment.json \
-            --reporters cli,junit,html \
-            --reporter-junit-export postman/reports/newman-results.xml \
-            --reporter-html-export postman/reports/newman-results.html \
-            --timeout-request 60000
+          
+          COLLECTION="postman/collections/restful-booker.postman_collection.json"
+          ENV_FILE="postman/environments/restful-booker.postman_environment.json"
+          
+          if [ ! -f "$COLLECTION" ]; then
+            echo "Collection file not found: $COLLECTION"
+            exit 1
+          fi
+          
+          if [ -f "$ENV_FILE" ]; then
+            echo "Running with environment file"
+            newman run "$COLLECTION" \
+              -e "$ENV_FILE" \
+              --reporters cli,junit,html \
+              --reporter-junit-export postman/reports/newman-results.xml \
+              --reporter-html-export postman/reports/newman-results.html \
+              --timeout-request 60000
+          else
+            echo "Running without environment file (not found)"
+            newman run "$COLLECTION" \
+              --reporters cli,junit,html \
+              --reporter-junit-export postman/reports/newman-results.xml \
+              --reporter-html-export postman/reports/newman-results.html \
+              --timeout-request 60000
+          fi
 
       - name: Upload reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: postman-reports
