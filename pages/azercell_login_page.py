@@ -93,9 +93,18 @@ class AzercellLoginPage:
 
     def click_password_change_link(self) -> bool:
         try:
+            # Wait for page to fully load
+            time.sleep(3)
+
+            # Try to find and click the link
             change_link = self.find_element_by_multiple_locators(
-                self.PASSWORD_CHANGE_LOCATORS, timeout=10
+                self.PASSWORD_CHANGE_LOCATORS, timeout=15
             )
+
+            # Scroll to element before clicking
+            self.driver.execute_script("arguments[0].scrollIntoView(true);", change_link)
+            time.sleep(0.5)
+
             change_link.click()
             time.sleep(2)
 
@@ -107,7 +116,10 @@ class AzercellLoginPage:
                 pass
 
             return True
-        except NoSuchElementException:
+        except (NoSuchElementException, TimeoutException) as e:
+            print(f"Password change link error: {e}")
+            print(f"Current URL: {self.driver.current_url}")
+            print(f"Page source preview: {self.driver.page_source[:500]}")
             return False
 
     def is_on_password_change_page(self) -> bool:
