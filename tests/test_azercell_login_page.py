@@ -1,9 +1,6 @@
 import pytest
 from pages.azercell_login_page import AzercellLoginPage
-
-# Change this to your Azercell number locally (do not commit real number to Git)
-# Or set PHONE_NUMBER environment variable
-DEFAULT_PHONE = "5XXXXXXXXX"  # Placeholder - replace locally or use env var
+DEFAULT_PHONE = "5XXXXXXXXX"
 
 
 @pytest.fixture()
@@ -73,7 +70,6 @@ def test_password_change_flow(login_page, phone_number):
     login_page.enter_phone_number(phone_number)
     login_page.submit_phone_number()
 
-    # Check if we're already on OTP page
     if login_page.is_on_otp_page():
         pytest.skip("Already on OTP page - password change requires verification")
 
@@ -97,9 +93,9 @@ def test_complete_flow_to_otp_page(login_page, phone_number):
     login_page.enter_phone_number(phone_number)
     login_page.submit_phone_number()
 
-    # If already on OTP page, test passes
+
     if login_page.is_on_otp_page():
-        return  # Success - reached OTP page
+        return
 
     success = login_page.click_password_change_link()
     if not success:
