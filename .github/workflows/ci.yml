@@ -68,11 +68,11 @@ jobs:
         run: pytest -q --junitxml=${{ env.REPORTS_DIR }}/junit.xml
 
       - name: Run Postman collection (Newman)
-        run: |
-          npx newman run postman/postman_collection.json \
-            -e postman/env.json \
-            -r cli,junit --reporter-junit-export ${{
-            env.REPORTS_DIR }}/postman-junit.xml
+  if: ${{ hashFiles('postman/postman_collection.json') != '' }}
+  run: |
+    echo "Postman collection found – running Newman tests"
+    npx newman run postman/postman_collection.json \
+      -r cli,junit --reporter-junit-export ${{ env.REPORTS_DIR }}/postman-junit.xml
 
       - name: Upload reports
         uses: actions/upload-artifact@v4
