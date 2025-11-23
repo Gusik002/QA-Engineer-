@@ -50,13 +50,11 @@ class AzercellLoginPage:
 
     def open_home_page(self):
         self.driver.get(self.BASE_URL)
-        time.sleep(2)  # Wait for page load
+        time.sleep(2)
 
     def click_login_button(self):
         initial_handles = set(self.driver.window_handles)
-
         try:
-            # Wait for page to be fully loaded
             WebDriverWait(self.driver, 10).until(
                 lambda d: d.execute_script("return document.readyState") == "complete"
             )
@@ -65,14 +63,11 @@ class AzercellLoginPage:
                 self.LOGIN_BUTTON_LOCATORS, timeout=20
             )
 
-            # Scroll element into view
             self.driver.execute_script(
                 "arguments[0].scrollIntoView({block: 'center'});",
                 login_button
             )
             time.sleep(1)
-
-            # Try regular click first, then JavaScript click as fallback
             try:
                 login_button.click()
             except Exception:
@@ -121,22 +116,18 @@ class AzercellLoginPage:
 
     def click_password_change_link(self) -> bool:
         try:
-            # Wait for page to fully load
             time.sleep(3)
 
-            # Try to find and click the link
             change_link = self.find_element_by_multiple_locators(
                 self.PASSWORD_CHANGE_LOCATORS, timeout=20
             )
 
-            # Scroll to element before clicking
             self.driver.execute_script(
                 "arguments[0].scrollIntoView({block: 'center'});",
                 change_link
             )
             time.sleep(0.5)
 
-            # Try click with fallback
             try:
                 change_link.click()
             except Exception:
