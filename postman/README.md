@@ -40,7 +40,7 @@ Run:
 postman/newman/run-restful-booker.sh
 # or use newman directly:
 newman run postman/collections/restful-booker.postman_collection.json \
-  -e postman/environments/restful-booker.postman_environment.json \
+  -e postman/environments/restful-booker.postman_collection.json \
   --reporters cli,junit,html \
   --reporter-junit-export postman/reports/newman-results.xml \
   --reporter-html-export postman/reports/newman-results.html
