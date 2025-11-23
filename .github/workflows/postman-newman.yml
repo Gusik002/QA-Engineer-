@@ -1,0 +1,37 @@
+name: Postman API Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  newman:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Newman + reporters
+        run: npm install -g newman newman-reporter-html newman-reporter-junitfull
+
+      - name: Run Postman collection
+        run: |
+          mkdir -p postman/reports
+          newman run postman/collections/restful-booker.postman_collection.json \
+            -e postman/environments/restful-booker.postman_environment.json \
+            --reporters cli,junit,html \
+            --reporter-junit-export postman/reports/newman-results.xml \
+            --reporter-html-export postman/reports/newman-results.html \
+            --timeout-request 60000
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: postman-reports
+          path: postman/reports/
