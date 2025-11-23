@@ -2,7 +2,6 @@ import os
 import pathlib
 import time
 from typing import Generator
-
 import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -11,13 +10,11 @@ from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
-
 REPORTS_DIR = pathlib.Path(os.getenv("REPORTS_DIR", "../reports"))
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 SCREENSHOTS_DIR = REPORTS_DIR / "screenshots"
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
-
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -27,11 +24,9 @@ def pytest_addoption(parser):
         help="Phone number for Azercell login tests",
     )
 
-
 @pytest.fixture(scope="session")
 def phone_number(request):
     return request.config.getoption("--phone")
-
 
 @pytest.fixture(scope="session")
 def chrome_options() -> Options:
@@ -54,7 +49,6 @@ def chrome_options() -> Options:
     opts.add_argument("--disable-background-timer-throttling")
     opts.add_argument("--disable-backgrounding-occluded-windows")
     opts.add_argument("--disable-renderer-backgrounding")
-
     opts.add_experimental_option("excludeSwitches", ["enable-logging"])
     opts.add_experimental_option(
         "prefs",
@@ -67,8 +61,6 @@ def chrome_options() -> Options:
     )
 
     return opts
-
-
 @pytest.fixture()
 def browser(chrome_options: Options) -> Generator[WebDriver, None, None]:
     driver = None
@@ -87,11 +79,9 @@ def browser(chrome_options: Options) -> Generator[WebDriver, None, None]:
             except Exception:
                 pass
 
-
 @pytest.fixture()
 def wait(browser: WebDriver) -> WebDriverWait:
     return WebDriverWait(browser, timeout=30)  # Increased timeout
-
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
@@ -118,12 +108,10 @@ def pytest_runtest_makereport(item, call):
             except Exception as e:
                 print(f"\nFailed to save test artifacts: {e}")
 
-
 def pytest_configure(config):
     config.addinivalue_line("markers", "smoke: mark test as smoke test")
     config.addinivalue_line("markers", "regression: mark test as regression test")
     config.addinivalue_line("markers", "slow: mark test as slow running")
-
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_environment(phone_number):
