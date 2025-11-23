@@ -52,3 +52,6 @@ secrets.*
 # Test artifacts
 reports/
 screenshots/
+
+#Postman
+postman/reports/
