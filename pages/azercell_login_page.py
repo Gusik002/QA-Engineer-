@@ -34,9 +34,7 @@ class AzercellLoginPage(BasePage):
         "AZERCELL_BASE_URL",
         os.getenv("BASE_URL", "https://www.azercell.com/az/"),
     )
-    LOGIN_URL = os.getenv(
-        "AZERCELL_LOGIN_URL", "https://kabinetim.azercell.com/login"
-    )
+    LOGIN_URL = os.getenv("AZERCELL_LOGIN_URL", "https://kabinetim.azercell.com/login")
 
     # More specific login link selector (avoid app store links)
     LOGIN_LINK = (
@@ -140,8 +138,7 @@ class AzercellLoginPage(BasePage):
         try:
             # Wait for page to be ready
             WebDriverWait(self.driver, 5).until(
-                lambda d: d.execute_script("return document.readyState")
-                == "complete"
+                lambda d: d.execute_script("return document.readyState") == "complete"
             )
 
             # Find all links that might be login links
@@ -156,9 +153,7 @@ class AzercellLoginPage(BasePage):
 
                 # Reject if it's an app store link
                 if "app" in href.lower() or "store" in href.lower():
-                    log.warning(
-                        "Found app store link, looking for web login instead"
-                    )
+                    log.warning("Found app store link, looking for web login instead")
                     login_link = None
             except TimeoutException:
                 log.debug("Primary login selector not found")
@@ -174,9 +169,7 @@ class AzercellLoginPage(BasePage):
                             and "app" not in href.lower()
                         ):
                             login_link = link
-                            log.info(
-                                "Found web login link via fallback: %s", href
-                            )
+                            log.info("Found web login link via fallback: %s", href)
                             break
                 except Exception as e:  # noqa: BLE001
                     log.debug("Fallback link search failed: %s", e)
@@ -202,9 +195,7 @@ class AzercellLoginPage(BasePage):
                 log.info("Clicked login link")
             except Exception as e:  # noqa: BLE001
                 log.warning("Normal click failed (%s), trying JS click", e)
-                self.driver.execute_script(
-                    "arguments[0].click();", login_link
-                )
+                self.driver.execute_script("arguments[0].click();", login_link)
 
             time.sleep(2)
 
@@ -258,9 +249,7 @@ class AzercellLoginPage(BasePage):
         except TimeoutException:
             current_url = self.driver.current_url.lower()
             is_login = "kabinetim" in current_url or "login" in current_url
-            log.debug(
-                "Login page check by URL: %s (url=%s)", is_login, current_url
-            )
+            log.debug("Login page check by URL: %s (url=%s)", is_login, current_url)
             return is_login
 
     def enter_phone_number(self, phone: str) -> str:
@@ -268,9 +257,7 @@ class AzercellLoginPage(BasePage):
         log.info("Entering phone number")
         phone = str(phone)
 
-        el = self.wait.until(
-            EC.visibility_of_element_located(self.PHONE_INPUT)
-        )
+        el = self.wait.until(EC.visibility_of_element_located(self.PHONE_INPUT))
         el.clear()
         time.sleep(0.3)
         el.send_keys(phone)
@@ -310,9 +297,7 @@ class AzercellLoginPage(BasePage):
                 phone_input = self.driver.find_element(*self.PHONE_INPUT)
                 classes = phone_input.get_attribute("class") or ""
                 if "invalid" in classes.lower() or "error" in classes.lower():
-                    log.warning(
-                        "Phone input has invalid/error class: %s", classes
-                    )
+                    log.warning("Phone input has invalid/error class: %s", classes)
                     return True
             except Exception:  # noqa: BLE001
                 pass
@@ -369,9 +354,7 @@ class AzercellLoginPage(BasePage):
         # Check for validation errors first
         if self.has_validation_error():
             error_text = self.get_validation_error_text()
-            log.error(
-                "Form has validation error before submit: %s", error_text
-            )
+            log.error("Form has validation error before submit: %s", error_text)
             return False
 
         # Try multiple submit button selectors
@@ -414,9 +397,7 @@ class AzercellLoginPage(BasePage):
                     log.info("Submit button clicked successfully")
                     button_clicked = True
                 except Exception as e:  # noqa: BLE001
-                    log.warning(
-                        "Normal click failed (%s), trying JS click", e
-                    )
+                    log.warning("Normal click failed (%s), trying JS click", e)
                     self.driver.execute_script("arguments[0].click();", btn)
                     log.info("JS click executed")
                     button_clicked = True
@@ -450,8 +431,7 @@ class AzercellLoginPage(BasePage):
                 # Check if URL changed after Enter
                 if not self._check_url_changed(original_url):
                     log.info(
-                        "URL didn't change after Enter, trying Tab + Enter "
-                        "fallback"
+                        "URL didn't change after Enter, trying Tab + Enter " "fallback"
                     )
                     input_el.send_keys(Keys.TAB)
                     time.sleep(0.3)
@@ -462,9 +442,7 @@ class AzercellLoginPage(BasePage):
                 # Check for errors after Enter key
                 if self.has_validation_error():
                     error_text = self.get_validation_error_text()
-                    log.error(
-                        "Validation error after Enter key: %s", error_text
-                    )
+                    log.error("Validation error after Enter key: %s", error_text)
                     return False
 
             except Exception as e:  # noqa: BLE001
@@ -512,9 +490,7 @@ class AzercellLoginPage(BasePage):
     def is_on_password_change_page(self) -> bool:
         """Check if on password change page."""
         url = self.driver.current_url.lower()
-        is_password_page = (
-            "password" in url or "reset" in url or "sifrə" in url
-        )
+        is_password_page = "password" in url or "reset" in url or "sifrə" in url
         if is_password_page:
             log.info("Detected password change page: %s", url)
         return is_password_page

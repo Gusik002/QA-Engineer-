@@ -33,9 +33,7 @@ class BasePage:
         """Navigate browser to the given absolute URL."""
         self.driver.get(url)
 
-    def click(
-        self, locator: Locator, retries: int = 2, delay: float = 0.3
-    ) -> bool:
+    def click(self, locator: Locator, retries: int = 2, delay: float = 0.3) -> bool:
         """
         Robust click helper.
 
@@ -53,9 +51,7 @@ class BasePage:
 
         for attempt in range(1, retries + 1):
             try:
-                el = self.wait.until(
-                    EC.element_to_be_clickable((by, value))
-                )
+                el = self.wait.until(EC.element_to_be_clickable((by, value)))
                 el.click()
                 return True
             except (

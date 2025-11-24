@@ -50,9 +50,9 @@ def test_phone_input_accepts_number(login_page, phone_number):
     normalized_entered = login_page.normalize_phone_number(entered_phone)
     normalized_actual = login_page.normalize_phone_number(actual_value)
 
-    assert normalized_actual == normalized_entered, (
-        f"Phone mismatch: entered '{entered_phone}' but got '{actual_value}'"
-    )
+    assert (
+        normalized_actual == normalized_entered
+    ), f"Phone mismatch: entered '{entered_phone}' but got '{actual_value}'"
 
 
 @pytest.mark.regression
@@ -77,9 +77,7 @@ def test_phone_submit_navigates_forward(login_page, phone_number):
     if not success:
         error_text = login_page.get_validation_error_text()
         if error_text:
-            pytest.skip(
-                f"Form submission prevented by validation error: {error_text}"
-            )
+            pytest.skip(f"Form submission prevented by validation error: {error_text}")
         else:
             pytest.skip(
                 "Form submission failed - button may be disabled or phone invalid"
@@ -142,9 +140,7 @@ def test_password_change_flow(login_page, phone_number):
     if not success:
         pytest.skip("Password change link not available")
 
-    assert (
-        login_page.is_on_password_change_page()
-    ), "Not on password change page"
+    assert login_page.is_on_password_change_page(), "Not on password change page"
 
 
 @pytest.mark.regression
@@ -167,9 +163,7 @@ def test_complete_flow_to_otp_page(login_page, phone_number):
     if not success:
         pytest.skip("Neither OTP nor password change available")
 
-    assert (
-        login_page.is_on_password_change_page()
-    ), "Expected OTP or password page"
+    assert login_page.is_on_password_change_page(), "Expected OTP or password page"
 
 
 @pytest.mark.regression
@@ -184,9 +178,7 @@ def test_phone_normalization(login_page):
 
     for input_phone, expected in test_cases:
         result = login_page.normalize_phone_number(input_phone)
-        assert (
-            result == expected
-        ), f"Normalization failed for {input_phone}"
+        assert result == expected, f"Normalization failed for {input_phone}"
 
 
 @pytest.mark.slow
@@ -200,16 +192,10 @@ def test_multiple_phone_formats_accepted(login_page, phone_number):
 
     formats = [
         phone_number,
-        (
-            f"0{phone_number}"
-            if not phone_number.startswith("0")
-            else phone_number
-        ),
+        (f"0{phone_number}" if not phone_number.startswith("0") else phone_number),
     ]
 
     for phone_format in formats:
         login_page.enter_phone_number(phone_format)
         value = login_page.get_phone_input_value()
-        assert (
-            value and len(value) > 0
-        ), f"Format {phone_format} not accepted"
+        assert value and len(value) > 0, f"Format {phone_format} not accepted"
