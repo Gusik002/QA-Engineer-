@@ -16,29 +16,23 @@ htmlcov/
 dist/
 build/
 *.egg-info/
-
 # Node
 node_modules/
 npm-debug.log*
 yarn-error.log*
-
 # IDEs / editors
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
-
 # macOS / Windows
 .DS_Store
 Thumbs.db
-
 # Reports
 reports/*
 !reports/.gitkeep
-
 # Logs
 *.log
-
 # Env / secrets / keys
 .env
 .env.local
@@ -48,10 +42,8 @@ reports/*
 *.crt
 credentials.*
 secrets.*
-
 # Test artifacts
 reports/
 screenshots/
-
 #Postman
 postman/reports/

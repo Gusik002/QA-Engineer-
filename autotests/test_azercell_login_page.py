@@ -1,25 +1,20 @@
 import pytest
 from pages.azercell_login_page import AzercellLoginPage
 DEFAULT_PHONE = "5XXXXXXXXX"
-
-
 @pytest.fixture()
 def login_page(browser, wait):
     return AzercellLoginPage(browser, wait)
-
-
+    
 @pytest.mark.smoke
 def test_home_page_loads(login_page):
     login_page.open_home_page()
     assert "azercell" in login_page.driver.current_url.lower()
-
 
 @pytest.mark.smoke
 def test_login_button_redirects(login_page):
     login_page.open_home_page()
     login_page.click_login_button()
     assert login_page.is_on_login_page(), "Did not reach login page"
-
 
 @pytest.mark.smoke
 def test_phone_input_accepts_number(login_page, phone_number):
@@ -40,7 +35,6 @@ def test_phone_input_accepts_number(login_page, phone_number):
         f"but got '{actual_value}' in field"
     )
 
-
 @pytest.mark.regression
 def test_phone_submit_navigates_forward(login_page, phone_number):
     if not phone_number or phone_number == "5XXXXXXXXX":
@@ -55,7 +49,6 @@ def test_phone_submit_navigates_forward(login_page, phone_number):
     login_page.submit_phone_number()
 
     assert login_page.driver.current_url != initial_url, "URL did not change"
-
 
 @pytest.mark.regression
 def test_password_change_flow(login_page, phone_number):
@@ -79,7 +72,6 @@ def test_password_change_flow(login_page, phone_number):
 
     assert login_page.is_on_password_change_page(), "Not on password change page"
 
-
 @pytest.mark.regression
 def test_complete_flow_to_otp_page(login_page, phone_number):
     if not phone_number or phone_number == "5XXXXXXXXX":
@@ -93,7 +85,6 @@ def test_complete_flow_to_otp_page(login_page, phone_number):
     login_page.enter_phone_number(phone_number)
     login_page.submit_phone_number()
 
-
     if login_page.is_on_otp_page():
         return
 
@@ -102,7 +93,6 @@ def test_complete_flow_to_otp_page(login_page, phone_number):
         pytest.skip("Password change link not available")
 
     assert login_page.is_on_password_change_page(), "Not on password change page"
-
 
 @pytest.mark.regression
 def test_phone_normalization(login_page):
@@ -116,7 +106,6 @@ def test_phone_normalization(login_page):
     for input_phone, expected in test_cases:
         result = login_page.normalize_phone_number(input_phone)
         assert result == expected, f"Failed for {input_phone}"
-
 
 @pytest.mark.slow
 def test_multiple_phone_formats_accepted(login_page, phone_number):
