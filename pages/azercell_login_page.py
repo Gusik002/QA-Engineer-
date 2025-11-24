@@ -32,11 +32,11 @@ class AzercellLoginPage(BasePage):
         "input[placeholder*='telefon'], input[placeholder*='nömrə']"
     )
     
-    # Fixed: removed invalid :has-text() pseudo-selector
     SUBMIT_BUTTON = (
         By.CSS_SELECTOR,
         "button[type='submit'], button.send-otp, button[class*='submit'], "
-        "button.btn-primary, button.login-btn, .login-form button"
+        "button.btn-primary, button.login-btn, .login-form button, "
+        "button[class*='continue']"
     )
     
     PASSWORD_CHANGE_LINK = (
@@ -48,6 +48,12 @@ class AzercellLoginPage(BasePage):
     OTP_INDICATOR = (
         By.CSS_SELECTOR,
         "input[name*='otp'], input[id*='otp'], input[name*='code'], input[type='text'][maxlength='6']"
+    )
+    
+    VALIDATION_ERROR = (
+        By.CSS_SELECTOR,
+        ".error, .invalid-feedback, [class*='error'], [class*='invalid'], "
+        ".field-error, .form-error, [role='alert']"
     )
 
     def open_home_page(self) -> None:
@@ -238,59 +244,116 @@ class AzercellLoginPage(BasePage):
             log.warning("Could not get phone input value: %s", e)
             return None
 
+    def has_validation_error(self) -> bool:
+        """Check if form has validation errors."""
+        try:
+            errors = self.driver.find_elements(*self.VALIDATION_ERROR)
+            for error in errors:
+                if error.is_displayed() and error.text.strip():
+                    log.warning("Validation error found: %s", error.text)
+                    return True
+            return False
+        except Exception:
+            return False
+
+    def get_validation_error_text(self) -> str:
+        """Get validation error message text."""
+        try:
+            errors = self.driver.find_elements(*self.VALIDATION_ERROR)
+            for error in errors:
+                if error.is_displayed() and error.text.strip():
+                    return error.text.strip()
+            return ""
+        except Exception:
+            return ""
+
     def submit_phone_number(self) -> bool:
         """Submit the phone number form."""
         log.info("Submitting phone number")
         
-        # Try to click submit button
-        try:
-            # First, try to find the button
-            submit_btn = None
+        # Store original URL for comparison
+        original_url = self.driver.current_url
+        
+        # Wait for potential client-side validation
+        time.sleep(1)
+        
+        # Check for validation errors first
+        if self.has_validation_error():
+            error_text = self.get_validation_error_text()
+            log.error("Form has validation error: %s", error_text)
+            return False
+        
+        # Try multiple submit button selectors
+        submit_selectors = [
+            (By.CSS_SELECTOR, "button[type='submit']:not([disabled])"),
+            (By.CSS_SELECTOR, "button.submit-btn:not([disabled])"),
+            (By.CSS_SELECTOR, "button[class*='login']:not([disabled])"),
+            (By.CSS_SELECTOR, "button[class*='continue']:not([disabled])"),
+            (By.CSS_SELECTOR, "button[class*='submit']:not([disabled])"),
+            (By.CSS_SELECTOR, "form button[type='submit']"),
+            (By.XPATH, "//button[contains(translate(., 'DAVAM', 'davam'), 'davam') or contains(., 'Continue') or contains(., 'Submit')]"),
+            (By.XPATH, "//button[@type='submit' and not(@disabled)]"),
+        ]
+        
+        for selector in submit_selectors:
             try:
-                submit_btn = WebDriverWait(self.driver, 3).until(
-                    EC.presence_of_element_located(self.SUBMIT_BUTTON)
+                btn = WebDriverWait(self.driver, 2).until(
+                    EC.element_to_be_clickable(selector)
                 )
-                log.info("Found submit button: %s", submit_btn.get_attribute("class"))
-            except TimeoutException:
-                log.info("Submit button not found with primary selector")
-            
-            # If found, try to click it
-            if submit_btn:
+                log.info("Found clickable submit button with selector: %s", selector)
+                
+                # Scroll into view
+                self.driver.execute_script(
+                    "arguments[0].scrollIntoView({block: 'center'});",
+                    btn
+                )
+                time.sleep(0.3)
+                
+                # Try clicking
                 try:
-                    # Scroll into view and click
-                    self.driver.execute_script(
-                        "arguments[0].scrollIntoView({block: 'center', behavior: 'instant'});",
-                        submit_btn
-                    )
-                    time.sleep(0.3)
-                    submit_btn.click()
-                    log.info("Submit button clicked")
-                    time.sleep(2)
-                    return True
+                    btn.click()
+                    log.info("Submit button clicked successfully")
                 except Exception as e:
-                    log.warning("Click failed (%s), trying JS click", e)
-                    try:
-                        self.driver.execute_script("arguments[0].click();", submit_btn)
-                        log.info("JS click succeeded")
-                        time.sleep(2)
-                        return True
-                    except Exception as e2:
-                        log.warning("JS click also failed: %s", e2)
+                    log.warning("Normal click failed (%s), trying JS click", e)
+                    self.driver.execute_script("arguments[0].click();", btn)
+                    log.info("JS click executed")
+                
+                # Wait for navigation or error
+                time.sleep(2)
+                return True
+                
+            except (TimeoutException, NoSuchElementException):
+                continue
         
-        except Exception as e:
-            log.warning("Exception finding submit button: %s", e)
-        
-        # Fallback: press Enter in phone input
-        log.info("Trying Enter key fallback")
+        # Fallback: Try pressing Enter on the form
+        log.info("No submit button found, trying Enter key fallback")
         try:
             input_el = self.driver.find_element(*self.PHONE_INPUT)
-            input_el.send_keys(Keys.ENTER)
-            time.sleep(2)
+            input_el.send_keys(Keys.RETURN)
             log.info("Enter key pressed")
+            time.sleep(2)
+            
+            # Check if URL changed after Enter
+            if not self._check_url_changed(original_url):
+                log.info("URL didn't change after Enter, trying Tab + Enter fallback")
+                input_el.send_keys(Keys.TAB)
+                time.sleep(0.3)
+                active_el = self.driver.switch_to.active_element
+                active_el.send_keys(Keys.RETURN)
+                time.sleep(2)
+            
             return True
+            
         except Exception as e:
-            log.error("Enter key fallback failed: %s", e)
+            log.error("All submit methods failed: %s", e)
             return False
+
+    def _check_url_changed(self, original_url: str) -> bool:
+        """Check if URL has changed from original."""
+        current_url = self.driver.current_url
+        changed = current_url != original_url
+        log.debug("URL changed check: %s -> %s (changed=%s)", original_url, current_url, changed)
+        return changed
 
     def is_on_otp_page(self) -> bool:
         """Check if on OTP verification page."""
