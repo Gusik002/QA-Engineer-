@@ -52,8 +52,9 @@ class AzercellLoginPage(BasePage):
     
     VALIDATION_ERROR = (
         By.CSS_SELECTOR,
-        ".error, .invalid-feedback, [class*='error'], [class*='invalid'], "
-        ".field-error, .form-error, [role='alert']"
+        ".error, .invalid-feedback, [class*='error']:not(:empty), [class*='invalid']:not(:empty), "
+        ".field-error, .form-error, [role='alert'], .alert-danger, .text-danger, "
+        "[class*='error-message'], [class*='validation']"
     )
 
     def open_home_page(self) -> None:
@@ -247,22 +248,65 @@ class AzercellLoginPage(BasePage):
     def has_validation_error(self) -> bool:
         """Check if form has validation errors."""
         try:
+            # Wait a moment for errors to appear
+            time.sleep(0.5)
+            
             errors = self.driver.find_elements(*self.VALIDATION_ERROR)
             for error in errors:
-                if error.is_displayed() and error.text.strip():
-                    log.warning("Validation error found: %s", error.text)
+                try:
+                    if error.is_displayed():
+                        text = error.text.strip()
+                        if text:
+                            log.warning("Validation error found: %s", text)
+                            return True
+                except Exception:
+                    continue
+            
+            # Also check for invalid class on input
+            try:
+                phone_input = self.driver.find_element(*self.PHONE_INPUT)
+                classes = phone_input.get_attribute("class") or ""
+                if "invalid" in classes.lower() or "error" in classes.lower():
+                    log.warning("Phone input has invalid/error class: %s", classes)
                     return True
+            except Exception:
+                pass
+                
             return False
-        except Exception:
+        except Exception as e:
+            log.debug("Error checking validation: %s", e)
             return False
 
     def get_validation_error_text(self) -> str:
         """Get validation error message text."""
         try:
+            time.sleep(0.5)
             errors = self.driver.find_elements(*self.VALIDATION_ERROR)
+            error_messages = []
+            
             for error in errors:
-                if error.is_displayed() and error.text.strip():
-                    return error.text.strip()
+                try:
+                    if error.is_displayed():
+                        text = error.text.strip()
+                        if text:
+                            error_messages.append(text)
+                except Exception:
+                    continue
+            
+            if error_messages:
+                return " | ".join(error_messages)
+            
+            # Check input validity state
+            try:
+                phone_input = self.driver.find_element(*self.PHONE_INPUT)
+                validity = self.driver.execute_script(
+                    "return arguments[0].validationMessage;", phone_input
+                )
+                if validity:
+                    return f"Input validation: {validity}"
+            except Exception:
+                pass
+                
             return ""
         except Exception:
             return ""
@@ -280,7 +324,7 @@ class AzercellLoginPage(BasePage):
         # Check for validation errors first
         if self.has_validation_error():
             error_text = self.get_validation_error_text()
-            log.error("Form has validation error: %s", error_text)
+            log.error("Form has validation error before submit: %s", error_text)
             return False
         
         # Try multiple submit button selectors
@@ -295,6 +339,7 @@ class AzercellLoginPage(BasePage):
             (By.XPATH, "//button[@type='submit' and not(@disabled)]"),
         ]
         
+        button_clicked = False
         for selector in submit_selectors:
             try:
                 btn = WebDriverWait(self.driver, 2).until(
@@ -313,40 +358,56 @@ class AzercellLoginPage(BasePage):
                 try:
                     btn.click()
                     log.info("Submit button clicked successfully")
+                    button_clicked = True
                 except Exception as e:
                     log.warning("Normal click failed (%s), trying JS click", e)
                     self.driver.execute_script("arguments[0].click();", btn)
                     log.info("JS click executed")
+                    button_clicked = True
                 
-                # Wait for navigation or error
-                time.sleep(2)
-                return True
+                # Wait longer for response after clicking
+                time.sleep(3)
+                
+                # Check for errors that appeared after clicking
+                if self.has_validation_error():
+                    error_text = self.get_validation_error_text()
+                    log.error("Validation error appeared after submit: %s", error_text)
+                    return False
+                
+                break
                 
             except (TimeoutException, NoSuchElementException):
                 continue
         
-        # Fallback: Try pressing Enter on the form
-        log.info("No submit button found, trying Enter key fallback")
-        try:
-            input_el = self.driver.find_element(*self.PHONE_INPUT)
-            input_el.send_keys(Keys.RETURN)
-            log.info("Enter key pressed")
-            time.sleep(2)
-            
-            # Check if URL changed after Enter
-            if not self._check_url_changed(original_url):
-                log.info("URL didn't change after Enter, trying Tab + Enter fallback")
-                input_el.send_keys(Keys.TAB)
-                time.sleep(0.3)
-                active_el = self.driver.switch_to.active_element
-                active_el.send_keys(Keys.RETURN)
-                time.sleep(2)
-            
-            return True
-            
-        except Exception as e:
-            log.error("All submit methods failed: %s", e)
-            return False
+        # If no button was clicked, try fallback methods
+        if not button_clicked:
+            log.info("No submit button found, trying Enter key fallback")
+            try:
+                input_el = self.driver.find_element(*self.PHONE_INPUT)
+                input_el.send_keys(Keys.RETURN)
+                log.info("Enter key pressed")
+                time.sleep(3)
+                
+                # Check if URL changed after Enter
+                if not self._check_url_changed(original_url):
+                    log.info("URL didn't change after Enter, trying Tab + Enter fallback")
+                    input_el.send_keys(Keys.TAB)
+                    time.sleep(0.3)
+                    active_el = self.driver.switch_to.active_element
+                    active_el.send_keys(Keys.RETURN)
+                    time.sleep(3)
+                
+                # Check for errors after Enter key
+                if self.has_validation_error():
+                    error_text = self.get_validation_error_text()
+                    log.error("Validation error after Enter key: %s", error_text)
+                    return False
+                
+            except Exception as e:
+                log.error("All submit methods failed: %s", e)
+                return False
+        
+        return True
 
     def _check_url_changed(self, original_url: str) -> bool:
         """Check if URL has changed from original."""
@@ -357,9 +418,18 @@ class AzercellLoginPage(BasePage):
 
     def is_on_otp_page(self) -> bool:
         """Check if on OTP verification page."""
-        if "otp" in self.driver.current_url.lower():
+        current_url = self.driver.current_url.lower()
+        if "otp" in current_url or "verify" in current_url or "verification" in current_url:
+            log.info("Detected OTP page by URL: %s", current_url)
             return True
-        return bool(self.driver.find_elements(*self.OTP_INDICATOR))
+        
+        # Check for OTP input elements
+        otp_elements = self.driver.find_elements(*self.OTP_INDICATOR)
+        if otp_elements:
+            log.info("Detected OTP page by input elements")
+            return True
+            
+        return False
 
     def click_password_change_link(self) -> bool:
         """Click password change/forgot password link."""
@@ -369,7 +439,10 @@ class AzercellLoginPage(BasePage):
     def is_on_password_change_page(self) -> bool:
         """Check if on password change page."""
         url = self.driver.current_url.lower()
-        return "password" in url or "reset" in url or "sifrə" in url
+        is_password_page = "password" in url or "reset" in url or "sifrə" in url
+        if is_password_page:
+            log.info("Detected password change page: %s", url)
+        return is_password_page
 
     @staticmethod
     def normalize_phone_number(phone: str | None) -> str:
