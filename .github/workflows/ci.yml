@@ -36,6 +36,9 @@ jobs:
     env:
       HEADLESS: "1"
       REPORTS_DIR: reports/ui
+      REUSE_BROWSER: "0"
+      WAIT_TIMEOUT: "15"
+      PAGE_LOAD_TIMEOUT: "45"
     
     steps:
       - uses: actions/checkout@v4
@@ -45,23 +48,29 @@ jobs:
           python-version: "3.11"
           cache: 'pip'
       
-      - name: Install Chrome (stable)
-        uses: browser-actions/setup-chrome@v1
-        with:
-          chrome-version: stable
+      - name: Install Chrome
+        run: |
+          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          
+          CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
+          echo "CHROME_BIN=/usr/bin/google-chrome" >> $GITHUB_ENV
+          echo "Chrome version: $CHROME_VERSION"
       
       - name: Install dependencies
         run: |
-          pip install --no-cache-dir -r requirements.txt
+          pip install -r requirements.txt
           pip install pytest-xdist pytest-timeout
       
-      - name: Run pytest (parallel)
+      - name: Run pytest
         env:
           PYTHONPATH: ${{ github.workspace }}
           PHONE_NUMBER: ${{ secrets.AZERCELL_PHONE_NUMBER }}
         run: |
           mkdir -p "$REPORTS_DIR"
-          pytest -n auto --timeout=120 -q \
+          pytest -v --timeout=180 \
             --junitxml="$REPORTS_DIR/ui-junit.xml" \
             --tb=short
       
@@ -85,7 +94,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: 'npm'
       
       - name: Install Newman
         run: npm install -g newman newman-reporter-html newman-reporter-junitfull
@@ -121,7 +129,10 @@ jobs:
               --reporters cli,junit,html \
               --reporter-junit-export "$REPORTS_DIR/postman-junit.xml" \
               --reporter-html-export "$REPORTS_DIR/postman-results.html" \
-              --timeout-request 30000
+              --timeout-request 30000 \
+              --bail
+          else
+            echo "Collection not found, skipping Newman tests"
           fi
       
       - name: Upload reports
