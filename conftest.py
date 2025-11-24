@@ -21,7 +21,7 @@ _log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()
 _log_level = getattr(logging, _log_level_name, logging.INFO)
 logging.basicConfig(
     level=_log_level,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 log = logging.getLogger(__name__)
 
@@ -47,7 +47,9 @@ def pytest_addoption(parser) -> None:
         "--phone",
         dest="phone_number",
         action="store",
-        default=os.getenv("AZERCELL_PHONE", os.getenv("PHONE_NUMBER", "5XXXXXXXXX")),
+        default=os.getenv(
+            "AZERCELL_PHONE", os.getenv("PHONE_NUMBER", "5XXXXXXXXX")
+        ),
         help="Azercell phone number for live tests.",
     )
 
@@ -86,8 +88,10 @@ def chrome_options() -> Options:
     opts.add_argument("--disable-translate")
     opts.add_argument("--disable-popup-blocking")
     opts.add_argument("--disable-features=VizDisplayCompositor")
-    
-    opts.add_experimental_option("excludeSwitches", ["enable-logging", "enable-automation"])
+
+    opts.add_experimental_option(
+        "excludeSwitches", ["enable-logging", "enable-automation"]
+    )
     opts.add_experimental_option("useAutomationExtension", False)
 
     prefs = {
@@ -113,7 +117,9 @@ def _create_driver(chrome_options: Options) -> WebDriver:
     """
     Create a Chrome WebDriver instance.
     """
-    chromedriver_path = os.getenv("CHROMEDRIVER_PATH") or shutil.which("chromedriver")
+    chromedriver_path = os.getenv("CHROMEDRIVER_PATH") or shutil.which(
+        "chromedriver"
+    )
     service: Optional[Service] = None
 
     if chromedriver_path:
@@ -126,15 +132,19 @@ def _create_driver(chrome_options: Options) -> WebDriver:
             log.info("ChromeDriver installed at: %s", chromedriver_path)
             service = Service(chromedriver_path)
         except Exception as exc:
-            log.warning("webdriver_manager failed (%s), trying default Service()", exc)
+            log.warning(
+                "webdriver_manager failed (%s), trying default Service()", exc
+            )
             service = Service()
 
     try:
         driver = webdriver.Chrome(service=service, options=chrome_options)
     except Exception as exc:
-        chrome_bin = os.getenv("CHROME_BIN") or getattr(chrome_options, "binary_location", None)
+        chrome_bin = os.getenv("CHROME_BIN") or getattr(
+            chrome_options, "binary_location", None
+        )
         raise RuntimeError(
-            f"Failed to start Chrome WebDriver.\n"
+            "Failed to start Chrome WebDriver.\n"
             f"  chromedriver: {chromedriver_path}\n"
             f"  chrome binary: {chrome_bin}\n"
             f"  error: {exc}"
@@ -143,8 +153,9 @@ def _create_driver(chrome_options: Options) -> WebDriver:
     # Configurable timeouts
     page_load_timeout = int(os.getenv("PAGE_LOAD_TIMEOUT", "45"))
     driver.set_page_load_timeout(page_load_timeout)
-    
-    # Small implicit wait for element discovery (fallback only; prefer explicit waits)
+
+    # Small implicit wait for element discovery (fallback only;
+    # prefer explicit waits)
     implicit_wait = float(os.getenv("IMPLICIT_WAIT", "3"))
     driver.implicitly_wait(implicit_wait)
 
@@ -152,7 +163,9 @@ def _create_driver(chrome_options: Options) -> WebDriver:
 
 
 @pytest.fixture(scope="session")
-def _driver_session(chrome_options: Options) -> Generator[Optional[WebDriver], None, None]:
+def _driver_session(
+    chrome_options: Options,
+) -> Generator[Optional[WebDriver], None, None]:
     """
     Optional session-scoped driver (enabled via REUSE_BROWSER=1).
     Disabled by default in CI for test isolation.
@@ -173,11 +186,16 @@ def _driver_session(chrome_options: Options) -> Generator[Optional[WebDriver], N
                 driver.quit()
                 log.info("Session browser quit")
             except Exception:
-                log.debug("Exception while quitting session driver", exc_info=True)
+                log.debug(
+                    "Exception while quitting session driver",
+                    exc_info=True,
+                )
 
 
 @pytest.fixture()
-def browser(_driver_session: Optional[WebDriver], chrome_options: Options) -> Generator[WebDriver, None, None]:
+def browser(
+    _driver_session: Optional[WebDriver], chrome_options: Options
+) -> Generator[WebDriver, None, None]:
     """
     Browser fixture for tests.
     - If REUSE_BROWSER=1: reuses session driver (faster, less isolated)
@@ -197,7 +215,10 @@ def browser(_driver_session: Optional[WebDriver], chrome_options: Options) -> Ge
             try:
                 driver.quit()
             except Exception:
-                log.debug("Exception while quitting function-scoped driver", exc_info=True)
+                log.debug(
+                    "Exception while quitting function-scoped driver",
+                    exc_info=True,
+                )
 
 
 @pytest.fixture()
@@ -210,7 +231,9 @@ def wait(browser: WebDriver) -> WebDriverWait:
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call) -> Generator[Any, None, None]:
+def pytest_runtest_makereport(
+    item, call
+) -> Generator[Any, None, None]:
     outcome: Any = yield
     rep = outcome.get_result()
 
@@ -242,18 +265,38 @@ def pytest_configure(config) -> None:
     config.addinivalue_line("markers", "regression: regression tests")
     config.addinivalue_line("markers", "slow: slow-running tests")
     config.addinivalue_line("markers", "testcase: external test case ID")
+    config.addinivalue_line(
+        "markers",
+        "flaky: tests that are unstable and may be retried",
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_test_environment(phone_number: str) -> Generator[None, None, None]:
+def setup_test_environment(
+    phone_number: str,
+) -> Generator[None, None, None]:
+    env_name = os.getenv("TEST_ENV", "local")
+    base_url = os.getenv(
+        "AZERCELL_BASE_URL",
+        os.getenv("BASE_URL", "https://www.azercell.com/az/"),
+    )
+
     log.info("=" * 60)
     log.info("Test Environment")
+    log.info("  Env: %s", env_name)
+    log.info("  Base URL: %s", base_url)
     log.info("  Reports: %s", REPORTS_DIR)
     log.info("  Headless: %s", _is_truthy(os.getenv("HEADLESS", "1")))
     log.info("  Reuse browser: %s", _is_truthy(os.getenv("REUSE_BROWSER", "0")))
     log.info("  Wait timeout: %ss", os.getenv("WAIT_TIMEOUT", "15"))
-    log.info("  Page load timeout: %ss", os.getenv("PAGE_LOAD_TIMEOUT", "45"))
-    masked = "<hidden>" if phone_number and phone_number != "5XXXXXXXXX" else phone_number
+    log.info(
+        "  Page load timeout: %ss", os.getenv("PAGE_LOAD_TIMEOUT", "45")
+    )
+    masked = (
+        "<hidden>"
+        if phone_number and phone_number != "5XXXXXXXXX"
+        else phone_number
+    )
     log.info("  Phone: %s", masked)
     log.info("=" * 60)
     yield
