@@ -1,40 +1,52 @@
 ## Azercell Login Automation
-Selenium-based test automation for Azercell login flow using Python and pytest.
+Selenium-based test automation for the Azercell login flow using Python and pytest.
 ### Prerequisites
+- Python 3.10+
+- Create and activate a venv (recommended)
+- Install deps:
 ```bash
-pip install pytest selenium webdriver-manager
+pip install -r requirements.txt
 ```
+### Configure phone number
+You can provide a phone number via environment variable or pytest option:
+- Environment:
+```bash
+export AZERCELL_PHONE="507475560"
+export HEADLESS=1    # set to 0 to run with visible browser locally
+```
+- Or pass on the command line:
+```bash
+pytest --phone-number=507475560
+```
+If no phone number is provided the tests that need a real number will automatically skip.
+
 ### Quick Start
-1. **Configure your phone number**
-   Open `tests/test_azercell_login.py` and replace the placeholder at line 5:
-   ```python
-   PHONE_NUMBER = "YOUR_VALID_AZERCELL_NUMBER_HERE"
-   ```
-   Change it to your Azercell number (with or without leading 0):
-   ```python
-   PHONE_NUMBER = "507475560"
-   ```
-2. **Run the tests**
-   ```bash
-   pytest tests/test_azercell_login.py -v
-   ```
-### Test Execution Options
+Run all tests:
+```bash
+pytest -q
+```
+Run the single Azercell test file:
 ```bash
 pytest tests/test_azercell_login.py -v
-pytest tests/test_azercell_login.py -m smoke
-HEADLESS=0 pytest tests/test_azercell_login.py -v
+```
+Run only smoke tests:
+```bash
+pytest -m smoke
+```
+Run a specific test:
+```bash
 pytest tests/test_azercell_login.py::test_complete_flow_to_otp_page -v
 ```
-### What Gets Tested
-
-- ✅ Homepage navigation
-- ✅ Login page access
-- ✅ Phone number input and formatting
-- ✅ Password change flow
-- ✅ OTP page navigation
-
-### Test Reports
-Failed tests automatically generate:
-- Screenshots: `reports/screenshots/*.png`
-- Page source: `reports/screenshots/*.html`
-### Project Structure
+### What gets reported on failure
+When a test fails, the framework saves:
+- Screenshot: `reports/screenshots/<testname>_<ts>.png`
+- Page source: `reports/screenshots/<testname>_<ts>.html`
+### Files of interest
+- tests/test_azercell_login.py — example test scenarios
+- pages/azercell_login_page.py — Page Object (skeleton with helpers)
+- conftest.py — fixtures: browser, wait, phone_number, screenshot-on-failure hook
+- pytest.ini — markers and default config
+### Notes for reviewers / recruiters
+- To run full UI tests in CI you must ensure Chrome is installed on the runner
+  and set `HEADLESS=1`. By default the tests are safe: live phone-number tests
+  are skipped unless you set `AZERCELL_PHONE` or `--phone-number`.
