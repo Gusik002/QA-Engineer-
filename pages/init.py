@@ -1,1 +1,1 @@
-# pages package for page objects
+# Package for Page Object Model classes (UI automation).
