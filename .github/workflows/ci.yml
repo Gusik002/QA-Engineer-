@@ -7,31 +7,27 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *" # Nightly run at 00:00 UTC
+    - cron: "0 0 * * *"
 
 jobs:
   lint:
     name: Lint (Python style checks)
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
+          cache: 'pip'
+      
       - name: Install linters
-        run: |
-          python -m pip install --upgrade pip
-          pip install ruff black
-
+        run: pip install ruff black
+      
       - name: Run ruff
         run: ruff check pages autotests || true
-
-      - name: Run black (check only)
+      
+      - name: Run black
         run: black --check pages autotests || true
 
   ui-tests:
@@ -40,157 +36,98 @@ jobs:
     env:
       HEADLESS: "1"
       REPORTS_DIR: reports/ui
-
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Cache pip
-        uses: actions/cache@v4
+          cache: 'pip'
+      
+      - name: Install Chrome (stable)
+        uses: browser-actions/setup-chrome@v1
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Ensure Chromium/Chrome
+          chrome-version: stable
+      
+      - name: Install dependencies
         run: |
-          if command -v chromium-browser >/dev/null 2>&1; then
-            echo "CHROME_BIN=$(which chromium-browser)" >> "$GITHUB_ENV"
-          elif command -v google-chrome >/dev/null 2>&1; then
-            echo "CHROME_BIN=$(which google-chrome)" >> "$GITHUB_ENV"
-          else
-            sudo apt-get update
-            sudo apt-get install -y chromium-browser
-            echo "CHROME_BIN=/usr/bin/chromium-browser" >> "$GITHUB_ENV"
-          fi
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-
-      - name: Prepare reports directory
-        run: mkdir -p "${{ env.REPORTS_DIR }}"
-
-      - name: Run pytest (Selenium UI tests)
+          pip install --no-cache-dir -r requirements.txt
+          pip install pytest-xdist pytest-timeout
+      
+      - name: Run pytest (parallel)
         env:
           PYTHONPATH: ${{ github.workspace }}
           PHONE_NUMBER: ${{ secrets.AZERCELL_PHONE_NUMBER }}
         run: |
-          pytest -q \
-            --junitxml="${{ env.REPORTS_DIR }}/ui-junit.xml"
-
-      - name: Upload UI test reports
+          mkdir -p "$REPORTS_DIR"
+          pytest -n auto --timeout=120 -q \
+            --junitxml="$REPORTS_DIR/ui-junit.xml" \
+            --tb=short
+      
+      - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ui-test-reports
           path: ${{ env.REPORTS_DIR }}
+          retention-days: 7
 
   api-tests:
     name: API tests (Postman + Newman)
     runs-on: ubuntu-latest
     env:
       REPORTS_DIR: reports/api
-
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
         with:
-          node-version: "18"
-
-      - name: Install Newman + reporters
+          node-version: "20"
+          cache: 'npm'
+      
+      - name: Install Newman
+        run: npm install -g newman newman-reporter-html newman-reporter-junitfull
+      
+      - name: Setup environment
         run: |
-          npm install -g \
-            newman \
-            newman-reporter-html \
-            newman-reporter-junitfull
-
-      - name: Prepare reports directory
-        run: mkdir -p "${{ env.REPORTS_DIR }}"
-
-      - name: Setup Postman environment file
-        run: |
+          mkdir -p "$REPORTS_DIR"
           ENV_FILE="postman/environments/restful-booker.postman_environment.json"
-
           if [ ! -f "$ENV_FILE" ]; then
-            echo "Environment file not found. Creating default CI environment..."
             mkdir -p "$(dirname "$ENV_FILE")"
-            cat > "$ENV_FILE" << 'ENVEOF'
+            cat > "$ENV_FILE" << 'EOF'
           {
             "id": "ci-environment",
             "name": "Restful Booker CI",
             "values": [
-              {
-                "key": "baseUrl",
-                "value": "https://restful-booker.herokuapp.com",
-                "type": "default",
-                "enabled": true
-              },
-              {
-                "key": "username",
-                "value": "admin",
-                "type": "default",
-                "enabled": true
-              },
-              {
-                "key": "password",
-                "value": "password123",
-                "type": "default",
-                "enabled": true
-              },
-              {
-                "key": "token",
-                "value": "",
-                "type": "default",
-                "enabled": true
-              },
-              {
-                "key": "bookingId",
-                "value": "",
-                "type": "default",
-                "enabled": true
-              }
-            ],
-            "_postman_variable_scope": "environment"
+              {"key": "baseUrl", "value": "https://restful-booker.herokuapp.com", "enabled": true},
+              {"key": "username", "value": "admin", "enabled": true},
+              {"key": "password", "value": "password123", "enabled": true},
+              {"key": "token", "value": "", "enabled": true},
+              {"key": "bookingId", "value": "", "enabled": true}
+            ]
           }
-          ENVEOF
+          EOF
           fi
-
-          echo "Using Postman environment file:"
-          cat "$ENV_FILE"
-
-      - name: Run Postman collection (Newman)
+      
+      - name: Run Newman
         run: |
           COLLECTION="postman/collections/restful-booker.postman_collection.json"
           ENV_FILE="postman/environments/restful-booker.postman_environment.json"
-
-          if [ ! -f "$COLLECTION" ]; then
-            echo "Collection not found: $COLLECTION"
-            echo "Skipping Newman tests."
-            exit 0
+          
+          if [ -f "$COLLECTION" ]; then
+            newman run "$COLLECTION" -e "$ENV_FILE" \
+              --reporters cli,junit,html \
+              --reporter-junit-export "$REPORTS_DIR/postman-junit.xml" \
+              --reporter-html-export "$REPORTS_DIR/postman-results.html" \
+              --timeout-request 30000
           fi
-
-          echo "Running Newman..."
-          newman run "$COLLECTION" \
-            -e "$ENV_FILE" \
-            --reporters cli,junit,html \
-            --reporter-junit-export "${{ env.REPORTS_DIR }}/postman-junit.xml" \
-            --reporter-html-export "${{ env.REPORTS_DIR }}/postman-results.html" \
-            --timeout-request 60000
-
-      - name: Upload API test reports
+      
+      - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: api-test-reports
           path: ${{ env.REPORTS_DIR }}
+          retention-days: 7
