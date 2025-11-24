@@ -90,7 +90,7 @@ def test_phone_submit_navigates_forward(login_page, phone_number):
     on_password = login_page.is_on_password_change_page()
     
     # Log all conditions for debugging
-    print(f"\nNavigation check:")
+    print("\nNavigation check:")
     print(f"  Initial URL: {initial_url}")
     print(f"  Final URL: {final_url}")
     print(f"  URL changed: {url_changed}")
