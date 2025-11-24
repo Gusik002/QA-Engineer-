@@ -2,7 +2,10 @@ import logging
 import os
 import time
 
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import (
+    TimeoutException,
+    NoSuchElementException,
+)
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
@@ -199,7 +202,9 @@ class AzercellLoginPage(BasePage):
                 log.info("Clicked login link")
             except Exception as e:  # noqa: BLE001
                 log.warning("Normal click failed (%s), trying JS click", e)
-                self.driver.execute_script("arguments[0].click();", login_link)
+                self.driver.execute_script(
+                    "arguments[0].click();", login_link
+                )
 
             time.sleep(2)
 
@@ -304,10 +309,7 @@ class AzercellLoginPage(BasePage):
             try:
                 phone_input = self.driver.find_element(*self.PHONE_INPUT)
                 classes = phone_input.get_attribute("class") or ""
-                if (
-                    "invalid" in classes.lower()
-                    or "error" in classes.lower()
-                ):
+                if "invalid" in classes.lower() or "error" in classes.lower():
                     log.warning(
                         "Phone input has invalid/error class: %s", classes
                     )
@@ -415,9 +417,7 @@ class AzercellLoginPage(BasePage):
                     log.warning(
                         "Normal click failed (%s), trying JS click", e
                     )
-                    self.driver.execute_script(
-                        "arguments[0].click();", btn
-                    )
+                    self.driver.execute_script("arguments[0].click();", btn)
                     log.info("JS click executed")
                     button_clicked = True
 
