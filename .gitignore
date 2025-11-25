@@ -47,5 +47,7 @@ postman/reports/
 *.crt
 credentials.*
 secrets.*
+*.env
+
 #Postman
 postman/reports/
