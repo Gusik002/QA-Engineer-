@@ -52,6 +52,3 @@ postman/reports/
 credentials.*
 secrets.*
 *.env
-
-#Postman
-postman/reports/
