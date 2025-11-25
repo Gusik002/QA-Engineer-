@@ -17,6 +17,10 @@ dist/
 build/
 *.egg-info/
 
+# Caches
+.ruff_cache/
+.mypy_cache/
+
 # Node
 node_modules/
 npm-debug.log*

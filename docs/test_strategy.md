@@ -1,79 +1,172 @@
 # Test strategy — QA Portfolio (Huseyn Gasimov)
 
-Purpose
--------
+## Purpose
+
 This document explains the testing approach illustrated by this
-repository. It demonstrates how I design small, reliable suites that
-protect releases and provide fast feedback to developers.
+repository. It shows how I design small, reliable suites that protect
+releases and provide fast feedback to developers.
 
-Scope
------
-- Public examples: Azercell login UI and Restful Booker API
-- Demonstrates cross-layer testing: UI (Selenium/POM), API (Postman/
-  Newman), and data checks.
-- Focus on smoke (fast) and regression (thorough) packs rather than
-  full exhaustive automation.
+## Scope
 
-Test pyramid & priorities
--------------------------
-- Unit / Component (not included here) — developer responsibility.
-- API / Integration — high value, medium speed. Cover auth, critical
-  workflows and boundary/error cases.
-- UI / End-to-end — small, focused smoke checks for critical journeys.
+- Public examples:
+  - Azercell login UI (Selenium + pytest + Page Objects)
+  - Restful Booker API (Postman + Newman)
+  - Light API performance smoke (k6)
+- Demonstrates cross-layer testing:
+  - UI end-to-end flows
+  - API/integration checks
+- Focus on:
+  - Fast **smoke** packs for PRs
+  - Deeper **regression** packs on nightly / on demand
 
-Risk-based selection
---------------------
-- Identify user journeys that must be protected on every PR (smoke).
-- Run larger regression/nightly suites for broader coverage.
-- Prioritise flaky-prone or brittle checks for manual review or
-  stabilization before adding to CI.
+## Test pyramid & priorities
 
-CI gating & cadence
--------------------
-- Pull Request: run smoke UI + API checks for quick feedback.
-- Push to main: run full smoke + Newman API with JUnit/HTML reports.
-- Nightly: run broader API/regression pack and upload artifacts.
+- **Unit / Component** (not fully included here)
+  - Owned by developers.
+  - Cheap, fast checks close to the code.
 
-Environments & test data
-------------------------
-- Use environment files for Postman (stored in repo for public
-  examples; secrets used for private creds).
-- Isolate test data — create / tear down entities where possible.
-- Seed stable test accounts for deterministic results.
+- **API / Integration**
+  - High value, medium speed.
+  - Cover auth, booking flows, boundary/error cases.
+  - Implemented via Postman + Newman and k6.
 
-Flaky test policy
------------------
-- Short-term: mark flaky tests with @pytest.mark.flaky/xfail and notify
-  owner in PR description.
-- Long-term: fix the root cause (timing, locator robustness,
-  environment issues) before adding to smoke.
+- **UI / End-to-end**
+  - Thin layer of small, focused smoke checks:
+    - Azercell home page and login availability.
+    - Core login journey with live or test data where possible.
+  - Deeper regression tests gated by data availability and stability.
 
-Reporting & observability
--------------------------
-- Upload JUnit XML + HTML reports as CI artifacts.
-- Attach screenshots and minimal logs for UI failures.
-- Track basic metrics (run time, failure rates, flaky tests) over time.
+## Risk-based selection
 
-Quality metrics
----------------
-Suggested measurable KPIs:
-- PR feedback time (time from push to first failing/successful CI).
-- Flaky rate (tests failing intermittently across runs).
-- Regression cycle time (full suite runtime).
-- Defect leakage to production (target near 0 for critical flows).
+- Identify user journeys that **must** be protected on every PR:
+  - Azercell home → login page reachable.
+  - Login page phone input works with valid number.
+- Run broader regression / exploratory suites:
+  - On nightly schedules.
+  - On-demand before bigger releases.
+- Treat brittle or very slow scenarios carefully:
+  - Start as regression-only.
+  - Stabilize before moving into smoke.
 
-Adding new tests (guidelines)
------------------------------
-- Prefer API tests before UI for business logic.
-- Add small, focused UI smoke tests only for high-risk flows.
-- Follow Page Object Model for UI code; keep locators in one file.
-- Add a short test case in `docs/test_cases_*.md` when adding
-  non-trivial checks.
+## CI gating & cadence
 
-Notes
------
-This repository intentionally demonstrates structure and approach
-rather than exhaustive coverage. For production projects I also include:
-- Test data factories
-- Canary health checks
-- Integration with test management (TestRail) and defect trackers
+GitHub Actions workflow `QA Portfolio CI` runs on:
+
+- Every push and pull request to `main`
+- Nightly at 00:00 (cron)
+- Manual dispatch
+
+Jobs:
+
+1. **`lint`**
+   - Runs `ruff` and `black --check` against UI test code.
+   - Acts as an early gate for code quality and basic issues.
+
+2. **`ui-tests`**
+   - Installs Google Chrome via `apt`.
+   - Uses pytest markers:
+     - Push/PR: `-m "smoke"`
+     - Nightly/scheduled: `-m "smoke or regression"`
+   - Reads phone number for Azercell flows from CI secrets.
+   - Uploads JUnit XML + screenshots + HTML sources.
+
+3. **`api-tests`**
+   - Runs Newman with the Restful Booker collection.
+   - Produces JUnit XML and HTML reports for debugging.
+
+4. **`perf-smoke`**
+   - Runs a small k6 script on schedule or manual trigger.
+   - Not required for every PR; focused on long-term performance
+     health.
+
+## Environments & test data
+
+- **UI**
+  - Uses environment variables to control:
+    - `TEST_ENV`, `BASE_URL`, `AZERCELL_LOGIN_URL`
+    - Timeouts (`WAIT_TIMEOUT`, `PAGE_LOAD_TIMEOUT`)
+    - Browser headless mode (`HEADLESS`).
+  - Uses `AZERCELL_PHONE` / `PHONE_NUMBER` for live login tests,
+    defaulting to a placeholder that safely skips deep flows.
+
+- **API**
+  - Postman environment JSON under `postman/environments/`.
+  - Credentials are demo-level (Restful Booker) and may be overridden by
+    CI secrets for real systems.
+
+- **Data isolation**
+  - Where practical, test data is created/cleaned up via API.
+  - For public demos, focus is on idempotent operations and safe data.
+
+## Flaky test policy
+
+- **Short-term:**
+  - Mark flaky tests with `@pytest.mark.flaky(...)` or `xfail` where
+    instability is due to:
+    - External dependencies (3rd party site slowness).
+    - Non-deterministic test data.
+  - Document the reason in the test docstring and/or PR description.
+
+- **Long-term:**
+  - Fix the root cause:
+    - Improve locators or waiting strategy.
+    - Stabilize test data.
+    - Isolate network dependency where possible.
+  - A test should not live permanently as “flaky” in the smoke suite.
+
+## Reporting & observability
+
+- **UI**
+  - JUnit XML from pytest.
+  - Screenshot + HTML capture on failure via
+    `pytest_runtest_makereport`.
+  - Artifacts uploaded for each CI run.
+
+- **API**
+  - Newman JUnit XML for integration with CI.
+  - Newman HTML report for human-friendly failure triage.
+
+- **Performance**
+  - k6 CLI output and optional result files.
+
+## Quality metrics (suggested)
+
+- **PR feedback time**
+  - Time from push to green/red CI.
+  - Target: minutes, not hours.
+
+- **Flaky rate**
+  - Percentage of tests that fail intermittently across runs.
+  - Aim to keep this very low, especially in smoke.
+
+- **Regression cycle time**
+  - Runtime of full smoke + regression suites.
+  - Measured to avoid suites becoming too slow to be useful.
+
+- **Defect leakage**
+  - Issues found after deployment in areas covered by automation.
+  - Target near 0 for critical flows.
+
+## Adding new tests (guidelines)
+
+- Prefer **API tests** over UI where business logic can be exercised
+  without a browser.
+- Add small, focused **UI smoke tests** only for high-risk flows (e.g.
+  login, checkout, critical dashboards).
+- Follow the Page Object Model:
+  - Keep locators and interactions in `pages/`.
+  - Keep assertions in test files.
+- For non-trivial checks:
+  - Add/update a case in `docs/test_cases_*.md`.
+  - Link test functions to case IDs via `@pytest.mark.testcase(...)`.
+
+## Notes
+
+This repository intentionally demonstrates structure and approach rather
+than exhaustive coverage. In production projects I would also include:
+
+- Test data factories and seeding strategies.
+- Health checks / canary tests for production monitoring.
+- Integration with test management tools (e.g. TestRail) and defect
+  trackers.
+- More extensive non-functional tests (security, accessibility, load).

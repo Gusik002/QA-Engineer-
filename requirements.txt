@@ -6,6 +6,8 @@ python-dotenv>=0.21.0
 # Lint / formatting (dev)
 ruff>=0.4.0
 black>=24.1.0
+
+# Pytest plugins
 pytest-xdist>=3.5.0
 pytest-timeout>=2.2.0
 pytest-rerunfailures>=12.0
