@@ -1,153 +1,211 @@
 # QA Automation Portfolio – Huseyn Gasimov
 
-For recruiters – start here
----------------------------
-
-1. **High-level overview**  
-   - `docs/architecture.md`  
-   - `docs/test_strategy.md`
-
-2. **Traceability (requirements → tests)**  
-   - `docs/traceability_matrix.md`
-
-3. **UI automation example (Selenium + pytest)**  
-   - Tests: `autotests/test_azercell_login_page.py`,
-     `autotests/test_smoke.py`  
-   - Page objects: `pages/azercell_login_page.py`, `pages/base_page.py`
-
-4. **API tests (Postman + Newman)**  
-   - Collection: `postman/collections/restful-booker.postman_collection.json`  
-   - CI job: `.github/workflows/ci.yml` → `api-tests`
-
-5. **Performance smoke (k6)**  
-   - Script: `performance/restful-booker-smoke.js`  
-   - CI job: `.github/workflows/ci.yml` → `perf-smoke`
-
-6. **Process / leadership**  
-   - Onboarding guide: `docs/onboarding_guide_for_new_qa.md`  
-   - Test cases: `docs/test_cases_azercell_login.md`
+This repo is a **public, production‑style example** of how I design and
+build test automation: UI, API, performance and CI/CD. Real client work
+is under NDA, but the structure, patterns and documentation here match
+what I use on real projects.
 
 ---
 
-## Overview
+## If you only have 60 seconds
 
-This repository showcases how I approach quality engineering across web
-UI, APIs, and CI/CD. It uses public systems (the Azercell login page and
-the Restful Booker API) to demonstrate my testing style without exposing
-any NDA‑protected work.
+Look at these first:
 
-The focus is on **small, reliable suites wired into CI**, clear
-reporting, and practical tooling rather than huge “test everything”
-packs.
+1. **How I structure automation**
+   - `docs/architecture.md`
+   - `docs/test_strategy.md`
+
+2. **How tests map to requirements**
+   - `docs/traceability_matrix.md`
+   - `docs/test_cases_azercell_login.md`
+
+3. **Concrete UI automation (Selenium + pytest)**
+   - Tests: `autotests/test_azercell_login_page.py`,
+     `autotests/test_smoke.py`
+   - Page Objects: `pages/azercell_login_page.py`, `pages/base_page.py`
+
+4. **API + performance examples**
+   - API: `postman/collections/restful-booker.postman_collection.json`
+   - Performance: `performance/restful-booker-smoke.js`
+
+5. **Process / onboarding**
+   - `docs/onboarding_guide_for_new_qa.md`
+
+If you skim only a few files, those will give you an accurate view of
+how I work.
 
 ---
 
 ## What this repository demonstrates
 
-- **Cross‑layer testing**  
-  Web UI (Selenium/pytest), API checks (Postman/Newman), and a small k6
-  performance smoke.
+### 1. Cross‑layer testing
 
-- **CI‑first mindset**  
-  Tests run on every push and pull request in GitHub Actions; nightly
-  runs execute a broader regression pack; results are published as
-  JUnit/HTML artifacts.
+- **Web UI**  
+  Azercell “Kabinetim” login flow automated with:
+  - Python, `pytest`
+  - Selenium WebDriver
+  - Page Object Model (POM)
+- **API**  
+  Restful Booker API tested with:
+  - Postman collections
+  - Newman CLI (HTML + JUnit reports)
+- **Performance smoke**  
+  Light k6 script against Restful Booker to show how I wire basic
+  performance checks into CI.
 
-- **Risk‑based test design**  
-  Focused smoke coverage for critical user paths, including both
-  positive and negative scenarios.
+### 2. CI‑first mindset
 
-- **Maintainable automation**  
-  Page Object Model, shared pytest fixtures, and environment‑aware
-  configuration driven by `BASE_URL`, `HEADLESS`, timeouts, and
-  environment labels.
+- GitHub Actions workflow: `.github/workflows/ci.yml`
+- On every **push** and **pull request**:
+  - `lint` job runs `ruff` + `black` as a quality gate
+  - `ui-tests` job runs Selenium smoke tests in headless Chrome
+  - `api-tests` job runs the Postman collection via Newman
+- **Nightly schedule**:
+  - UI: smoke + regression pack
+  - API: full collection
+  - Performance: k6 smoke test
+- All jobs publish artifacts (JUnit XML, screenshots, HTML, Newman
+  reports) to make debugging straightforward.
 
-- **Engineering discipline**  
-  Linting (`ruff`, `black`), pre‑commit hooks, readable docs, and
-  explicit handling of flaky tests.
+### 3. Risk‑based test design
+
+- Focus on **small, reliable smoke suites** that protect the most
+  important flows:
+  - Azercell home page reachable
+  - Login button navigates correctly
+  - Phone input works and validates
+- Deeper **regression** tests:
+  - Additional navigation rules
+  - Password‑change flow (when available)
+  - Format variations and validation behaviour
+
+### 4. Maintainable automation
+
+- Clear separation of concerns:
+  - Tests live in `autotests/`
+  - Page Objects live in `pages/`
+  - Utilities in `utils/`
+  - Configuration and fixtures in `conftest.py`
+- Page Objects hide Selenium details behind readable methods like:
+  - `open_home_page()`
+  - `click_login_button()`
+  - `enter_phone_number()`
+  - `submit_phone_number()`
+- Robustness features:
+  - Multiple locators and fallbacks for key elements
+  - Centralised `BasePage.click()` with retries and JS fallback
+  - Window/tab switching when the site opens login in a new window
+  - Automatic screenshots and HTML capture on test failure
+
+### 5. Engineering discipline
+
+- Linters and formatters:
+  - `ruff` for static analysis
+  - `black` for formatting
+- Pre‑commit configuration:
+  - `.pre-commit-config.yaml` to keep the repo consistently formatted
+- Documentation:
+  - Test strategy, architecture, onboarding, test cases, traceability
+  - Lightweight ADRs in `docs/adr/` for architectural decisions
+- Flaky tests:
+  - Explicit policy using `pytest-rerunfailures`
+  - Only marked flaky when the external system is unstable; root cause
+    is documented and targeted for fixing
 
 ---
 
 ## Tech stack
 
 - **Language & test runner**
-  - Python 3.11, `pytest`
+  - Python 3.11+  
+  - `pytest`
 - **Web UI automation**
   - Selenium WebDriver
-  - Page Object Model (POM)
+  - Chrome / Chromium (headless in CI)
+  - Page Object Model pattern
 - **API testing**
   - Postman collections
-  - Newman CLI with HTML/JUnit reporters
+  - Newman CLI (`cli`, `html`, `junit` reporters)
 - **Performance testing**
-  - Grafana k6 (CLI + GitHub Action)
+  - Grafana k6 (local CLI and GitHub Action)
 - **CI/CD**
   - GitHub Actions (`.github/workflows/ci.yml`)
-- **Other tooling**
-  - Chrome/Chromium (headless in CI)
-  - JUnit XML + HTML reports (uploaded as build artifacts)
-
-Real production work (mobile, BI, broader API suites) is under NDA, but
-the structure here mirrors how I work on those projects.
+- **Support tooling**
+  - `python-dotenv` for `.env` handling
+  - `pytest-xdist`, `pytest-timeout`, `pytest-rerunfailures`
 
 ---
 
 ## Repository structure
 
+Reflecting what you see in the IDE screenshots:
+
 ```text
 .github/
   workflows/
-    ci.yml                    # GitHub Actions pipeline
+    ci.yml                   # GitHub Actions pipeline (lint, UI, API, perf)
 
-autotests/                    # pytest UI tests (Selenium)
-  test_azercell_login_page.py
-  test_smoke.py               # Example smoke/regression grouping
+autotests/
+  README_test_azercell_login.md
+  test_azercell_login_page.py   # Main Azercell UI flows (smoke + regression)
+  test_smoke.py                 # Minimal smoke test (home → login)
 
-pages/                        # Page Object Model classes
-  base_page.py
-  azercell_login_page.py
-  login_page.py
+docs/
+  adr/
+    0001-use-pytest-selenium-pom.md
+    0002-ci-gating-smoke-on-pr.md
+  architecture.md
+  onboarding_guide_for_new_qa.md
+  test_cases_azercell_login.md
+  test_strategy.md
+  traceability_matrix.md        # Test cases → automated tests
+
+pages/
+  azercell_login_page.py        # Azercell login Page Object
+  base_page.py                  # Shared base Page Object (click, open, windows)
+  login_page.py                 # Generic placeholder LoginPage
   __init__.py
 
 postman/
-  collections/                # Restful Booker Postman collection
+  data/
+  environments/
+    restful-booker.postman_environment.json
+  collections/
     restful-booker.postman_collection.json
-  environments/               # Local/CI environments
-  newman/                     # Example Newman shell wrapper
+  newman/
+    run-restful-booker.sh
   README.md
 
 performance/
-  restful-booker-smoke.js     # k6 performance smoke script
+  restful-booker-smoke.js       # k6 API smoke test
 
-reports/
-  (created at runtime)
-  ui/                         # UI JUnit + screenshots (CI)
-  api/                        # Newman JUnit + HTML (CI)
+reports/                        # Created at runtime (.gitkeep only)
+  downloads/
+  screenshots/
 
-docs/
-  architecture.md
-  test_strategy.md
-  traceability_matrix.md
-  test_cases_azercell_login.md
-  onboarding_guide_for_new_qa.md
+utils/
+  phone.py                      # normalize_phone_number() helper
 
-conftest.py                   # Shared pytest fixtures (driver, waits, artifacts)
-pytest.ini                    # Pytest configuration and markers
-requirements.txt              # Python dependencies
-.pre-commit-config.yaml       # Lint/format hooks
-README.md                     # This file
+conftest.py                     # pytest fixtures, WebDriver, screenshots on fail
+pytest.ini                      # markers, default pytest config
+requirements.txt                # Python dependencies
+.pre-commit-config.yaml         # black + ruff hooks
+.gitignore
+LICENSE
+README.md                       # This file
 ```
 
 ---
 
-## Running tests locally
+## How to run the tests locally
 
 ### 1. Prerequisites
 
-- Python **3.11+**
-- Node.js **18+** with `npm`
-- Google Chrome or Chromium installed locally
+- Python 3.11+
+- Node.js 18+ (for Newman)
+- Google Chrome / Chromium installed
 
-Clone the repository and create a virtual environment:
+Clone the repo and create a virtual environment:
 
 ```bash
 git clone https://github.com/<your-username>/<this-repo>.git
@@ -157,80 +215,64 @@ python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 ```
 
-Install Python dependencies:
+Install dependencies:
 
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Install Newman globally (for API tests):
+Optional (for API tests):
 
 ```bash
 npm install -g newman newman-reporter-html newman-reporter-junitfull
 ```
 
-Optional: install k6 locally for performance smoke:
-
-```bash
-# Example for macOS
-brew install k6
-```
-
 ---
 
-### 2. Run UI tests (Selenium + pytest)
+### 2. UI tests (Selenium + pytest)
 
-Export optional environment variables:
+Basic environment configuration:
 
 ```bash
 export TEST_ENV="local"
-export BASE_URL="https://www.azercell.com/en"
-export HEADLESS="0"               # use 1 for headless
+export BASE_URL="https://www.azercell.com/az"
+export HEADLESS="1"              # use "0" to see the browser
 export WAIT_TIMEOUT="15"
 export PAGE_LOAD_TIMEOUT="45"
-export PHONE_NUMBER="YOUR_TEST_PHONE_NUMBER"  # optional
 ```
 
-**Smoke suite (fast, for local checks / PR parity):**
+The Azercell login tests can use a real phone number. For safety, the
+placeholder `5XXXXXXXXX` is treated as “no real number” and deeper flows
+are automatically skipped.
 
 ```bash
-pytest autotests -m smoke
+# Optional – only if you have a real test number
+export AZERCELL_PHONE="5XXXXXXXXX"  # format 5XXXXXXXXX, no leading 0
 ```
 
-**Smoke + regression (broader, similar to nightly CI):**
+Run the **smoke suite** (same idea as PR checks):
 
 ```bash
-pytest autotests -m "smoke or regression"
+pytest autotests -m smoke -v
 ```
 
-To generate a local JUnit report:
+Run **smoke + regression** (broader coverage):
 
 ```bash
-pytest autotests -m "smoke or regression" \
-  --junitxml=reports/ui/ui-junit.xml
+pytest autotests -m "smoke or regression" -v
 ```
 
-Screenshots and page source from failing tests are stored under
-`reports/ui/screenshots/`.
+On failure, screenshots and page source are stored under:
+
+```text
+reports/screenshots/<test_nodeid>_<timestamp>.png
+reports/screenshots/<test_nodeid>_<timestamp>.html
+```
 
 ---
 
-### 3. Run API tests (Postman + Newman)
-
-Main collection:
-
-```text
-postman/collections/restful-booker.postman_collection.json
-```
-
-Environment (can be adjusted locally):
-
-```text
-postman/environments/restful-booker.postman_environment.json
-```
-
-Run via Newman:
+### 3. API tests (Postman + Newman)
 
 ```bash
 newman run postman/collections/restful-booker.postman_collection.json \
@@ -240,115 +282,94 @@ newman run postman/collections/restful-booker.postman_collection.json \
   --reporter-html-export reports/api/postman-results.html
 ```
 
+These tests cover basic happy paths and negative flows of the
+Restful Booker demo API.
+
 ---
 
-### 4. Run performance smoke (k6)
+### 4. Performance smoke (k6)
 
 ```bash
 export BASE_URL="https://restful-booker.herokuapp.com"
 k6 run performance/restful-booker-smoke.js
 ```
 
-This executes a short load test against `/ping` with simple thresholds on
-latency and error rate.
+This is a small load test that exercises `/ping` with thresholds on
+latency and error rate, meant to show how performance checks can be
+integrated into CI rather than to stress the system.
 
 ---
 
 ## Continuous Integration (GitHub Actions)
 
-The workflow file lives in `.github/workflows/ci.yml`.
+Workflow: `.github/workflows/ci.yml`
 
-It runs on:
+- Triggers:
+  - `push` to `main`
+  - `pull_request` targeting `main`
+  - `workflow_dispatch` (manual)
+  - Nightly `schedule` (`0 0 * * *`)
 
-- Every push to `main`
-- Every pull request targeting `main`
-- Manual runs via the **Run workflow** button
-- A scheduled nightly run at `00:00` UTC
-
-### CI jobs
+Jobs:
 
 1. **`lint`**
    - Installs `ruff` and `black`.
-   - Runs static checks over the Python automation code
-     (`pages/`, `autotests/`).
-   - Fails the pipeline if style checks fail (quality gate).
+   - Runs:
+     - `ruff check pages autotests`
+     - `black --check pages autotests`
 
 2. **`ui-tests`**
    - Needs `lint`.
-   - Installs Python deps + Chrome, configures headless mode for CI.
-   - Push / PR: runs only `-m "smoke"` for fast feedback.
-   - Nightly schedule: runs `-m "smoke or regression"` for broader
-     coverage.
-   - Publishes JUnit XML and screenshots/page source under the
-     `ui-test-artifacts` artifact.
+   - Installs Chrome on Ubuntu runner.
+   - Sets:
+     - `BASE_URL=https://www.azercell.com/en`
+     - `HEADLESS=1`
+   - Injects phone via `PHONE_NUMBER=${{ secrets.AZERCELL_PHONE_NUMBER }}`
+     when configured.
+   - Runs:
+     - On push/PR: `pytest autotests -m "smoke" -v`
+     - On nightly schedule: `pytest autotests -m "smoke or regression" -v`
+   - Uploads:
+     - `reports/ui/ui-junit.xml`
+     - Screenshots and page source files.
 
 3. **`api-tests`**
    - Needs `lint`.
-   - Sets up Node.js and installs Newman + reporters.
-   - Ensures a CI Postman environment JSON exists.
-   - Runs the Restful Booker collection with positive and negative
-     flows.
-   - Publishes JUnit XML and HTML reports as `api-test-artifacts`.
+   - Sets up Node and Newman.
+   - Ensures a Restful Booker environment JSON exists.
+   - Runs the Postman collection and uploads:
+     - `reports/api/postman-junit.xml`
+     - `reports/api/postman-results.html`.
 
 4. **`perf-smoke`**
    - Needs `api-tests`.
-   - Runs only on `schedule` or manual `workflow_dispatch`.
-   - Uses official `setup-k6-action` and `run-k6-action` to execute
-     `performance/restful-booker-smoke.js` against `/ping`.
-   - Fails the build if latency or error thresholds are violated.
+   - Runs only on schedule or manual dispatch.
+   - Uses official k6 GitHub Actions to execute
+     `performance/restful-booker-smoke.js`.
 
-This setup mirrors how I typically wire smoke, API, and light
-performance checks into CI for early, visible feedback.
-
----
-
-## Flaky tests and reruns
-
-Occasionally a test can be unstable due to external systems
-(third‑party services, demo environments). For those cases:
-
-- The project uses `pytest-rerunfailures`.
-- Tests may be marked as:
-
-  ```python
-  @pytest.mark.flaky(reruns=2, reruns_delay=1)
-  ```
-
-- Each flaky test must have:
-  - A comment or docstring explaining the reason.
-  - A clear plan to remove the flakiness (or move it out of smoke).
-
-This shows that flakiness is **managed**, not ignored.
-
----
-
-## Docs & test cases
-
-Key documentation:
-
-- `docs/test_strategy.md` – overall testing strategy and CI gating.
-- `docs/traceability_matrix.md` – mapping of risks/features to tests.
-- `docs/test_cases_azercell_login.md` – example UI test cases.
-- `docs/onboarding_guide_for_new_qa.md` – how a new QA joins and works
-  with this repo.
+This pipeline shows how I typically gate changes with fast checks on
+every PR and push, plus broader regression and performance checks on a
+schedule.
 
 ---
 
 ## Real‑world context (NDA)
 
-My production experience includes:
+In production environments I have:
 
-- Mobile (iOS/Android) testing and automation with Appium on BrowserStack
-- BI and web analytics platforms with SQL‑based data validation
-- Release gating, regression planning, and TestRail/Jira workflows
+- Worked with mobile (iOS/Android) automation on BrowserStack
+- Built BI / analytics data checks with SQL and API orchestration
+- Integrated with TestRail, Jira and release processes
+- Owned regression planning and CI gating strategies
 
-Those projects are under NDA, so this repository uses public targets but
-follows the same structure and practices I apply at work.
+Those repos are private, but this project mirrors my approach:
+structured automation, strong documentation, and CI as the default way
+to run tests.
 
 ---
 
 ## Contact
 
-- **Email:** guseingasimov002@gmail.com  
-- **LinkedIn:** https://www.linkedin.com/in/huseyn-gasimov-  
-- **Location:** Baku, Azerbaijan
+- Email: `guseingasimov002@gmail.com`
+- LinkedIn: https://www.linkedin.com/in/huseyn-gasimov-
+- Location: Baku, Azerbaijan
